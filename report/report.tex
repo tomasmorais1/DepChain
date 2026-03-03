@@ -1,0 +1,77 @@
+% LNCS-style report (template). Use documentclass from Springer LNCS.
+\documentclass{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{url}
+\usepackage{hyperref}
+
+\title{DepChain Stage 1: Design and Dependability}
+\author{}
+\institute{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report describes the design and implementation of DepChain Stage 1, a simplified permissioned blockchain based on the Basic HotStuff BFT consensus algorithm. We justify the layered communication design (UDP, Fair Loss Link, Authenticated Perfect Links), the four-phase consensus protocol with explicit DECIDE round, client broadcast and leader-based proposal handling, and the mechanisms for crash and Byzantine fault tolerance. We analyse threats and the corresponding protection mechanisms and summarise the dependability guarantees provided by the system.
+\end{abstract}
+
+\section{Introduction}
+
+DepChain is a permissioned blockchain with high dependability guarantees. Stage 1 focuses on the consensus layer using Basic HotStuff (Algorithm 2)~\cite{hotstuff}. The system comprises a client library (used by applications to submit append requests) and blockchain members (replicas running the BFT consensus). Membership is static and a PKI is assumed. Communication is over UDP with no TLS; we build Authenticated Perfect Links on top of a best-effort layer.
+
+\section{Design and Justification}
+
+\subsection{Layered Communication}
+
+We use the following stack:
+\begin{itemize}
+  \item \textbf{UDP}: Raw datagram send/receive (loss, delay, duplication, corruption possible).
+  \item \textbf{Fair Loss Link}: Best-effort send with limited retries to approximate fair loss.
+  \item \textbf{Authenticated Perfect Links (APL)}: Each message is signed by the sender. On receive we \emph{first} verify the signature with the sender's public key (from static membership); \emph{then} we deduplicate by authenticated message identifier. We never deduplicate before authenticating: a Byzantine node could otherwise forge message IDs and cause legitimate messages to be discarded when they arrive.
+\end{itemize}
+
+\subsection{Basic HotStuff: Four Phases}
+
+We implement the four phases of Algorithm 2: PREPARE, PRE-COMMIT, COMMIT, and DECIDE. In the first three phases the leader proposes a block (with the QC from the previous phase), replicas vote (sign), and the leader assembles a quorum of $2f+1$ votes into a Quorum Certificate (QC). The \emph{fourth phase (DECIDE)} is an explicit message round: the leader sends a DECIDE message containing the commit QC to all replicas. Only when a replica \emph{receives} this DECIDE message does it execute the command (upcall to the blockchain layer) and advance the view. This ensures a single, well-defined decision point.
+
+\subsection{Client--BFT Gap}
+
+Clients expose \texttt{append(string)} and expect a confirmation (and index). The BFT layer exposes Propose and Decide. We fill the gap as follows: the client \emph{broadcasts} each append request to \emph{all} blockchain members (the client does not know the current leader). Only the leader of the current view processes incoming client requests and proposes blocks. Block payload for client requests is \texttt{requestId} (8 bytes) plus the string; on DECIDE, members parse the payload, append the string to the in-memory log, and send a response to the client's address (from the original request). Invalid client messages (malformed or oversized) are discarded and never trigger a proposal.
+
+\subsection{View Change and Pacemaker}
+
+A timeout-based pacemaker triggers view change when the current view does not make progress. On timeout, replicas increment the view; the new leader (determined by \texttt{view mod n}) continues using its \texttt{highQC}. This handles crash faults of the leader.
+
+\subsection{Byzantine Protection}
+
+We use per-replica digital signatures (RSA, Java Crypto API) for votes; a QC is an aggregate of $2f+1$ such signatures verified with the membership's public keys. Malformed or invalid votes are rejected; the leader only counts valid signatures toward quorum. Threshold signatures (e.g.~\cite{weavechain}) could be used for more compact QCs but are not required for correctness; we justify the use of aggregated individual signatures in this stage as a practical proof-of-concept.
+
+\section{Threat Analysis and Protection Mechanisms}
+
+\begin{itemize}
+  \item \textbf{Message forgery / impersonation}: APL verifies every message with the sender's public key; only messages that verify are delivered. Duplicates are discarded after verification.
+  \item \textbf{Byzantine replicas sending invalid votes}: Vote signatures are verified against the replica's public key; invalid votes are ignored. Safety is preserved as long as at most $f$ replicas are Byzantine ($n \ge 3f+1$).
+  \item \textbf{Leader crash}: Pacemaker timeout triggers view change; the new leader takes over using \texttt{highQC}.
+  \item \textbf{Network loss/delay}: Fair Loss Link retries; consensus view change allows progress under partial synchrony.
+  \item \textbf{Invalid client requests}: Protocol validation (type, length, string size limit) ensures malformed messages are dropped and never proposed.
+\end{itemize}
+
+\section{Dependability Guarantees}
+
+\begin{itemize}
+  \item \textbf{Safety}: Under the assumption that at most $f$ of $n \ge 3f+1$ replicas are Byzantine, all correct replicas decide the same sequence of blocks (agreement) and the decided value is valid (validity).
+  \item \textbf{Liveness}: After GST (Global Stabilization Time), with a correct leader and a timeout-based pacemaker, the system eventually decides (progress in the current view or after view change).
+  \item \textbf{Authenticated communication}: APL provides integrity and origin authentication for consensus messages; client messages are validated before processing.
+\end{itemize}
+
+\section{Conclusion}
+
+DepChain Stage 1 implements Basic HotStuff with a strict four-phase protocol including an explicit DECIDE round, layered communication over UDP with authentication before deduplication, client broadcast and leader-based proposal handling, and crash and Byzantine fault tolerance. The design is justified with respect to the threat model and the dependability guarantees are summarised above.
+
+\begin{thebibliography}{9}
+\bibitem{hotstuff} Yin, M., Malkhi, D., Reiter, M.K., Gueta, G.G., Abraham, I.: HotStuff: BFT Consensus in the Lens of Blockchain. arXiv:1803.05069 (2018).
+\bibitem{weavechain} Weavechain threshold-sig: \url{https://github.com/weavechain/threshold-sig}.
+\end{thebibliography}
+\end{document}

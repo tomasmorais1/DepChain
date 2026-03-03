@@ -1,0 +1,8 @@
+depchain/consensus/DropConsensusNetwork.class
+depchain/demo/MultiProcessConfigIntegrationTest.class
+depchain/consensus/IntrusiveNetworkTest.class
+depchain/client/ClientIntegrationTest.class
+depchain/consensus/HotStuffIntegrationTest.class
+depchain/links/AuthenticatedPerfectLinkTest.class
+depchain/consensus/CorruptingConsensusNetwork.class
+depchain/consensus/ByzantineTest.class
