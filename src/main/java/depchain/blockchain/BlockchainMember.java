@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -24,7 +25,9 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Single blockchain member: runs consensus, client request listener, and blockchain service.
  * Client requests are broadcast to all members; only the leader proposes. All members store
- * (requestId -> client address). On DECIDE, any member can send response to client.
+ * (requestId -> client address). Clients sign requests; we only accept and propose verified requests,
+ * so a byzantine leader cannot get replicas to agree on a forged command.
+ * On DECIDE, any member can send response to client.
  */
 public final class BlockchainMember implements AutoCloseable {
     private final int selfId;
@@ -33,6 +36,8 @@ public final class BlockchainMember implements AutoCloseable {
     private final HotStuffReplica replica;
     private final int clientPort;
     private final Map<Long, InetSocketAddress> requestIdToClient = new ConcurrentHashMap<>();
+    /** requestId -> string for requests that passed signature verification (reject forged proposals). */
+    private final Map<Long, String> verifiedClientRequests = new ConcurrentHashMap<>();
     /** Apply blocks in view order so indices 0,1,2,... match client order. Pending: view -> block. */
     private final ConcurrentSkipListMap<Long, Block> pendingByView = new ConcurrentSkipListMap<>();
     private final AtomicLong nextViewToApply = new AtomicLong(0);
@@ -56,7 +61,8 @@ public final class BlockchainMember implements AutoCloseable {
         this.fairLoss = new FairLossLink(consensusTransport, 5, 40);
         this.apl = new AuthenticatedPerfectLink(selfId, membership, fairLoss, privateKey);
         ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
-        this.replica = new HotStuffReplica(selfId, membership, net, privateKey, this::onDecide, viewTimeoutMs);
+        HotStuffReplica.BlockValidator validator = this::isVerifiedClientBlock;
+        this.replica = new HotStuffReplica(selfId, membership, net, privateKey, this::onDecide, validator, viewTimeoutMs);
         this.clientSocket = new DatagramSocket(clientPort);
         this.clientListenerThread = new Thread(this::clientListenLoop, "client-listener-" + selfId);
         this.clientListenerThread.setDaemon(true);
@@ -139,8 +145,18 @@ public final class BlockchainMember implements AutoCloseable {
         t.start();
     }
 
+    /** Return true iff the block payload is a (requestId, string) that we received as a verified signed client request. */
+    private boolean isVerifiedClientBlock(Block block) {
+        byte[] payload = block.getPayload();
+        if (payload == null || payload.length < 8) return true; // non-client block (e.g. empty)
+        ByteBuffer b = ByteBuffer.wrap(payload);
+        long requestId = b.getLong();
+        String string = new String(payload, 8, payload.length - 8, StandardCharsets.UTF_8);
+        return Objects.equals(verifiedClientRequests.get(requestId), string);
+    }
+
     private void clientListenLoop() {
-        byte[] buf = new byte[ClientProtocol.MAX_STRING_LENGTH + 32];
+        byte[] buf = new byte[ClientProtocol.MAX_REQUEST_WIRE];
         while (!closed.get() && clientSocket != null && !clientSocket.isClosed()) {
             try {
                 DatagramPacket p = new DatagramPacket(buf, buf.length);
@@ -149,9 +165,14 @@ public final class BlockchainMember implements AutoCloseable {
                 System.arraycopy(p.getData(), p.getOffset(), copy, 0, p.getLength());
                 ClientProtocol.Request req = ClientProtocol.parseRequest(copy);
                 if (req == null) continue;
+                if (!ClientProtocol.verifyRequest(req)) {
+                    System.err.println("[member " + selfId + "] dropped client request requestId=" + req.getRequestId() + " (invalid or missing signature)");
+                    continue;
+                }
                 InetSocketAddress clientAddr = new InetSocketAddress(p.getAddress(), p.getPort());
                 System.err.println("[member " + selfId + "] received client request requestId=" + req.getRequestId() + " from " + clientAddr);
                 requestIdToClient.put(req.getRequestId(), clientAddr);
+                verifiedClientRequests.put(req.getRequestId(), req.getString());
                 pendingRequests.offer(req);
             } catch (IOException e) {
                 if (!closed.get()) e.printStackTrace();

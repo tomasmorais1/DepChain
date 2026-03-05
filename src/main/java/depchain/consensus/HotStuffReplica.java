@@ -42,18 +42,36 @@ public class HotStuffReplica implements AutoCloseable {
         void onDecide(Block block);
     }
 
+    /** Optional: if set, replicas only vote for PREPARE when the block passes (e.g. verified client request, not forged by byzantine leader). */
+    public interface BlockValidator {
+        boolean validate(Block block);
+    }
+
+    private final BlockValidator blockValidator;
+
     public HotStuffReplica(int selfId, Membership membership, ConsensusNetwork network,
                            PrivateKey privateKey, DecideCallback decideCallback) {
-        this(selfId, membership, network, privateKey, decideCallback, 2000L);
+        this(selfId, membership, network, privateKey, decideCallback, null, 2000L);
     }
 
     public HotStuffReplica(int selfId, Membership membership, ConsensusNetwork network,
                            PrivateKey privateKey, DecideCallback decideCallback, long viewTimeoutMs) {
+        this(selfId, membership, network, privateKey, decideCallback, null, viewTimeoutMs);
+    }
+
+    public HotStuffReplica(int selfId, Membership membership, ConsensusNetwork network,
+                           PrivateKey privateKey, DecideCallback decideCallback, BlockValidator blockValidator) {
+        this(selfId, membership, network, privateKey, decideCallback, blockValidator, 2000L);
+    }
+
+    public HotStuffReplica(int selfId, Membership membership, ConsensusNetwork network,
+                           PrivateKey privateKey, DecideCallback decideCallback, BlockValidator blockValidator, long viewTimeoutMs) {
         this.selfId = selfId;
         this.membership = membership;
         this.network = network;
         this.privateKey = privateKey;
         this.decideCallback = decideCallback;
+        this.blockValidator = blockValidator;
         this.viewTimeoutMs = viewTimeoutMs > 0 ? viewTimeoutMs : 2000L;
         this.processThread = new Thread(this::processLoop, "hotstuff-" + selfId);
         this.processThread.setDaemon(true);
@@ -188,6 +206,7 @@ public class HotStuffReplica implements AutoCloseable {
         if (membership.getLeaderId(v) != senderId) return;
         Block block = msg.getBlock();
         if (block == null) return;
+        if (blockValidator != null && !blockValidator.validate(block)) return; // reject forged commands from byzantine leader
         QuorumCertificate qc = msg.getQC();
         if (lockedBlockHash != null && !java.util.Arrays.equals(block.getBlockHash(), lockedBlockHash)) {
             if (qc == null || qc.getViewNumber() >= v) return;

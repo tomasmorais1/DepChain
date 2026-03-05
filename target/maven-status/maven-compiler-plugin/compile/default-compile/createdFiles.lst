@@ -3,6 +3,7 @@ depchain/links/APLMessage$Parsed.class
 depchain/consensus/QuorumCertificate.class
 depchain/consensus/ConsensusMessage$Message.class
 depchain/Main.class
+depchain/consensus/HotStuffReplica$BlockValidator.class
 depchain/links/APLMessage.class
 depchain/client/DepChainClient.class
 depchain/transport/FairLossLink.class

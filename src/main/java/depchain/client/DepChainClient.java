@@ -5,22 +5,25 @@ import depchain.config.NodeAddress;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Client library: append(string) broadcasts request to all members, waits for confirmation.
+ * Client library: append(string) broadcasts signed request to all members, waits for confirmation.
+ * Clients sign requests with their private key so replicas can reject commands forged by a byzantine leader.
  */
 public final class DepChainClient implements AutoCloseable {
+    private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
+
     private final List<NodeAddress> memberAddresses;
     private final int clientPort;
     private final long timeoutMs;
     private final int maxRetries;
+    private final KeyPair keyPair;
     private final AtomicLong requestIdGen = new AtomicLong(0);
     private volatile DatagramSocket socket;
     private final Map<Long, CompletableFuture<ClientProtocol.Response>> pending = new ConcurrentHashMap<>();
@@ -28,7 +31,7 @@ public final class DepChainClient implements AutoCloseable {
     private volatile boolean closed;
 
     public DepChainClient(List<NodeAddress> memberAddresses, int clientPort) {
-        this(memberAddresses, clientPort, 5000L, 3);
+        this(memberAddresses, clientPort, null, 5000L, 3);
     }
 
     public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, long timeoutMs, int maxRetries) {
@@ -37,12 +40,18 @@ public final class DepChainClient implements AutoCloseable {
 
     /**
      * Create client; if bindAddress is non-null, bind the receive socket to that address (e.g. 127.0.0.1 for multi-JVM so responses reach us).
+     * If keyPair is null, a new key pair is generated for this client.
      */
     public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, InetSocketAddress bindAddress, long timeoutMs, int maxRetries) {
+        this(memberAddresses, clientPort, bindAddress, null, timeoutMs, maxRetries);
+    }
+
+    public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, InetSocketAddress bindAddress, KeyPair keyPair, long timeoutMs, int maxRetries) {
         this.memberAddresses = List.copyOf(memberAddresses);
         this.clientPort = clientPort;
         this.timeoutMs = timeoutMs;
         this.maxRetries = maxRetries;
+        this.keyPair = keyPair != null ? keyPair : generateKeyPair();
         try {
             this.socket = bindAddress != null
                     ? new DatagramSocket(bindAddress)
@@ -55,6 +64,16 @@ public final class DepChainClient implements AutoCloseable {
         this.receiverThread.start();
     }
 
+    private static KeyPair generateKeyPair() {
+        try {
+            KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+            gen.initialize(2048);
+            return gen.generateKeyPair();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Append string to the blockchain. Blocks until a member confirms or timeout.
      * @return the index at which the string was appended, or -1 on failure
@@ -62,7 +81,10 @@ public final class DepChainClient implements AutoCloseable {
     public int append(String string) throws InterruptedException {
         if (string == null) return -1;
         long requestId = requestIdGen.incrementAndGet();
-        byte[] payload = ClientProtocol.encodeRequest(requestId, string);
+        byte[] content = ClientProtocol.signedContent(requestId, string);
+        byte[] signature = sign(content);
+        byte[] publicKeyEncoded = keyPair.getPublic().getEncoded();
+        byte[] payload = ClientProtocol.encodeRequest(requestId, string, signature, publicKeyEncoded);
         CompletableFuture<ClientProtocol.Response> future = new CompletableFuture<>();
         pending.put(requestId, future);
         try {
@@ -91,6 +113,17 @@ public final class DepChainClient implements AutoCloseable {
             return -1;
         } finally {
             pending.remove(requestId);
+        }
+    }
+
+    private byte[] sign(byte[] data) {
+        try {
+            Signature sig = Signature.getInstance(SIGNATURE_ALGORITHM);
+            sig.initSign(keyPair.getPrivate());
+            sig.update(data);
+            return sig.sign();
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException("client sign failed", e);
         }
     }
 
