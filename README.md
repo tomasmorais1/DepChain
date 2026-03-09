@@ -10,7 +10,7 @@ mvn clean compile test
 
 ## Run demo
 
-Starts 4 blockchain members and 1 client; the client appends 3 strings.
+**Application demo** — Starts 4 blockchain members and 1 client; the client appends 3 strings. Shows normal operation (append, consensus, response).
 
 ```bash
 mvn exec:java -Dexec.mainClass="depchain.demo.Demo"
@@ -43,17 +43,22 @@ To run with **5 separate processes** (one JVM per member and one for the client)
 
 ## Dependability and security mechanisms (demos)
 
-1. **Byzantine behaviour**  
-   `ByzantineTest`: one replica uses `CorruptingConsensusNetwork` so its votes have invalid signatures. The leader collects only valid votes; quorum is still reached and the correct value is decided. Run: `mvn test -Dtest=ByzantineTest`.
+These demos/tests satisfy the assignment requirement to *demonstrate mechanisms that tackle security and dependability threats* (e.g. detection of Byzantine behaviour). Run the commands below to reproduce.
 
-2. **View change after leader timeout**  
-   `HotStuffIntegrationTest#viewChangeAfterLeaderTimeout`: replica 0 (leader) never proposes; after a timeout all replicas move to the next view; replica 1 becomes leader and proposes; all decide. Run: `mvn test -Dtest=HotStuffIntegrationTest#viewChangeAfterLeaderTimeout`.
+1. **Byzantine behaviour (blockchain members)**  
+   `ByzantineTest`: one replica sends votes with invalid signatures; the leader ignores them and quorum is reached with the other replicas; all decide the same value.  
+   Run: `mvn test -Dtest=ByzantineTest`.
+
+2. **View change after leader timeout (crash handling)**  
+   `HotStuffIntegrationTest#viewChangeAfterLeaderTimeout`: replica 0 (leader) never proposes; after a timeout all replicas move to the next view; replica 1 becomes leader and proposes; all decide.  
+   Run: `mvn test -Dtest=HotStuffIntegrationTest#viewChangeAfterLeaderTimeout`.
 
 3. **Message drop (intrusive test harness)**  
-   `IntrusiveNetworkTest` uses `DropConsensusNetwork` to inject loss on sends. With 0% drop the test passes; for demos, increase the drop probability in the test to observe resilience (retries and view change). Run: `mvn test -Dtest=IntrusiveNetworkTest`.
+   `IntrusiveNetworkTest` uses `DropConsensusNetwork` to inject loss on sends. With 0% drop the test passes; increase the drop probability in the test code to observe resilience (retries and view change).  
+   Run: `mvn test -Dtest=IntrusiveNetworkTest`.
 
 4. **Invalid client messages**  
-   Client protocol expects: type byte, requestId, string length, string. Malformed or oversized messages are ignored by `ClientProtocol.parseRequest` and never trigger a proposal.
+   Malformed or oversized client messages are rejected: `ClientProtocol.parseRequest` returns null and they never trigger a proposal. (No dedicated test; see client listener in `BlockchainMember` and protocol in `ClientProtocol`.)
 
 ## Project layout
 

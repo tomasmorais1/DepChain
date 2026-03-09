@@ -21,7 +21,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Byzantine replica sends invalid votes (wrong key). Correct replicas still decide using 2f+1 valid votes.
+ * Byzantine replica sends invalid votes (wrong key). Correct replicas still
+ * decide using 2f+1 valid votes.
  */
 class ByzantineTest {
 
@@ -55,9 +56,11 @@ class ByzantineTest {
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
             ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
-            if (i == 3) net = new CorruptingConsensusNetwork(net);
+            if (i == 3)
+                net = new CorruptingConsensusNetwork(net);
             BlockchainService chain = new BlockchainService();
-            HotStuffReplica replica = new HotStuffReplica(i, membership, net, keys.get(i).getPrivate(), chain::onDecide);
+            HotStuffReplica replica = new HotStuffReplica(i, membership, net, keys.get(i).getPrivate(),
+                    chain::onDecide);
             apls.add(apl);
             blockchains.add(chain);
             replicas.add(replica);
@@ -69,8 +72,10 @@ class ByzantineTest {
 
             for (int t = 0; t < 300; t++) {
                 int total = 0;
-                for (BlockchainService c : blockchains) total += c.size();
-                if (total == n) break;
+                for (BlockchainService c : blockchains)
+                    total += c.size();
+                if (total == n)
+                    break;
                 Thread.sleep(100);
             }
 
@@ -79,8 +84,10 @@ class ByzantineTest {
                 assertEquals("safe", c.getLog().get(0));
             }
         } finally {
-            for (HotStuffReplica r : replicas) r.close();
-            for (AuthenticatedPerfectLink a : apls) a.close();
+            for (HotStuffReplica r : replicas)
+                r.close();
+            for (AuthenticatedPerfectLink a : apls)
+                a.close();
         }
     }
 }
