@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for APL: delivery, corrupted message rejection, deduplication after authentication.
+ * APL tests: delivery, rejection of invalid messages, deduplication by message id.
  */
 class AuthenticatedPerfectLinkTest {
 
@@ -31,6 +31,7 @@ class AuthenticatedPerfectLinkTest {
         );
     }
 
+    /** Node 0 sends; node 1 receives the same payload and sender id. */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void sendAndReceive() throws Exception {
@@ -67,6 +68,7 @@ class AuthenticatedPerfectLinkTest {
         }
     }
 
+    /** Invalid or truncated wire format is rejected; parse returns null. */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void corruptedMessageRejected() throws Exception {
@@ -88,12 +90,6 @@ class AuthenticatedPerfectLinkTest {
         try {
             byte[] payload = "hello".getBytes();
             apl0.send(payload, 1);
-            // Wait until raw message arrives at udp1, then corrupt one copy (we can't easily corrupt in transit in test)
-            // Instead: send a valid message, then inject a corrupted packet to udp1's socket - complex.
-            // Simpler: parse with wrong key. We can create a second membership where node 0 has a different key;
-            // message signed by k0 won't verify with the other key. So deliver once (valid), then if we could
-            // send same content with corrupted sig, it would be rejected. For unit test, just verify that
-            // parse() returns null for clearly invalid wire (e.g. truncated or wrong bytes).
             assertNull(APLMessage.parse(new byte[]{1, 2, 3}));
             assertNull(APLMessage.parse(new byte[0]));
         } finally {
@@ -102,6 +98,7 @@ class AuthenticatedPerfectLinkTest {
         }
     }
 
+    /** Same messageId sent multiple times is delivered at most once. */
     @Test
     @Timeout(value = 10, unit = TimeUnit.SECONDS)
     void duplicateDeliveredOnce() throws Exception {
@@ -126,7 +123,6 @@ class AuthenticatedPerfectLinkTest {
             apl0.sendWithId(payload, 1, msgId);
             apl0.sendWithId(payload, 1, msgId);
             apl0.sendWithId(payload, 1, msgId);
-            // Wait for first delivery
             AuthenticatedPerfectLink.DeliveredMessage first = null;
             for (int i = 0; i < 500; i++) {
                 first = apl1.poll();
@@ -136,13 +132,13 @@ class AuthenticatedPerfectLinkTest {
             assertNotNull(first, "should receive at least one message");
             assertEquals(0, first.getSenderId());
             assertArrayEquals(payload, first.getPayload());
-            // Poll more; should get no additional deliveries (dedup)
+            
             int extra = 0;
             for (int i = 0; i < 100; i++) {
                 if (apl1.poll() != null) extra++;
                 Thread.sleep(20);
             }
-            assertEquals(0, extra, "deduplication: no duplicate delivery for same messageId");
+            assertEquals(0, extra, "no duplicate delivery for same messageId");
         } finally {
             apl0.close();
             apl1.close();

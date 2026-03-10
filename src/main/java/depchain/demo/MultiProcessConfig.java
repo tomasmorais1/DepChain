@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Shared config for multi-JVM demo. Same ports as Demo.
+ * Shared config for multi-JVM demo.
  * Use genconfig once to write keys to a file; all member processes load from that file so keys match.
  */
 public final class MultiProcessConfig {

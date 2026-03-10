@@ -41,7 +41,7 @@ public final class BlockchainMember implements AutoCloseable {
     /** Apply blocks in view order so indices 0,1,2,... match client order. Pending: view -> block. */
     private final ConcurrentSkipListMap<Long, Block> pendingByView = new ConcurrentSkipListMap<>();
     private final AtomicLong nextViewToApply = new AtomicLong(0);
-    /** requestId -> index (first time we applied it); avoids duplicate append if same block decided in multiple views. */
+    /** requestId -> index; avoids duplicate append if same block decided in multiple views. */
     private final Map<Long, Integer> requestIdToIndex = new ConcurrentHashMap<>();
     private final ConcurrentLinkedQueue<ClientProtocol.Request> pendingRequests = new ConcurrentLinkedQueue<>();
     private final Thread clientListenerThread;

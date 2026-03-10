@@ -10,8 +10,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Best-effort link over UDP: retries send a limited number of times to approximate
- * "fair loss" (eventually message gets through). Does NOT deduplicate on receive;
- * duplicates are passed up. APL will do deduplication after authentication.
+ * fair loss. 
+ * Duplicates are passed up. APL will do deduplication after authentication.
  */
 public class FairLossLink implements AutoCloseable {
     private final UdpTransport transport;

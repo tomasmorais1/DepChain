@@ -10,14 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Paths;
 import java.util.List;
 
-/**
- * Entry point for running DepChain: single-JVM demo, or multi-JVM (one process per member/client).
- * <ul>
- *   <li>{@code demo} — run 4 members + 1 client in one JVM</li>
- *   <li>{@code member <id>} — run only blockchain member 0..3 (use 4 terminals)</li>
- *   <li>{@code client} — run only the client; appends 3 strings and exits (use 5th terminal)</li>
- * </ul>
- */
+
 public class Main {
     public static void main(String[] args) {
         try {
@@ -80,7 +73,6 @@ public class Main {
         List<NodeAddress> targets = MultiProcessConfig.getClientTargets();
         System.out.println("DepChain client: waiting 4s for members to be ready...");
         Thread.sleep(4000);
-        // Bind to 127.0.0.1 so members' responses (to client source address) reach us reliably on some systems
         InetSocketAddress bindAddr = new InetSocketAddress("127.0.0.1", MultiProcessConfig.CLIENT_LISTEN);
         DepChainClient client = new DepChainClient(targets, MultiProcessConfig.CLIENT_LISTEN, bindAddr, 15000L, 5);
         System.out.println("Appending 3 strings to members at " + targets + " ...");

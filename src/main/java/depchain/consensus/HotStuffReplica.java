@@ -42,7 +42,7 @@ public class HotStuffReplica implements AutoCloseable {
         void onDecide(Block block);
     }
 
-    /** Optional: if set, replicas only vote for PREPARE when the block passes (e.g. verified client request, not forged by byzantine leader). */
+    
     public interface BlockValidator {
         boolean validate(Block block);
     }
