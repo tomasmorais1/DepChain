@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.6)  9 MAR 2026 10:58
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.6)  10 MAR 2026 21:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -431,213 +431,205 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 ) (./report.aux)
 \openout1 = `report.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 17.
-LaTeX Font Info:    ... okay on input line 17.
-Package hyperref Info: Link coloring OFF on input line 17.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 23.
+LaTeX Font Info:    ... okay on input line 23.
+Package hyperref Info: Link coloring OFF on input line 23.
  (./report.out) (./report.out)
 \@outlinefile=\write3
 \openout3 = `report.out'.
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 19.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 25.
 
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 19.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 25.
 
 
 (/usr/local/texlive/2026basic/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-Overfull \hbox (12.36366pt too wide) in paragraph at lines 35--36
+Overfull \hbox (12.36366pt too wide) in paragraph at lines 41--42
 []\T1/cmr/bx/n/10 Transport\T1/cmr/m/n/10 : \T1/cmtt/m/n/10 UdpTransport \T1/cm
 r/m/n/10 pro-vides raw data-gram send/receive; \T1/cmtt/m/n/10 FairLossLink
+ []
+
+
+Overfull \hbox (5.32927pt too wide) in paragraph at lines 45--46
+[]\T1/cmr/bx/n/10 Blockchain\T1/cmr/m/n/10 : \T1/cmtt/m/n/10 BlockchainService 
+\T1/cmr/m/n/10 is an in-memory append-only list of strings;
  []
 
 [1
 
 {/usr/local/texlive/2026basic/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Overfull \hbox (5.32927pt too wide) in paragraph at lines 39--40
-[]\T1/cmr/bx/n/10 Blockchain\T1/cmr/m/n/10 : \T1/cmtt/m/n/10 BlockchainService 
-\T1/cmr/m/n/10 is an in-memory append-only list of strings;
- []
-
-
-Overfull \hbox (26.26195pt too wide) in paragraph at lines 50--51
+Overfull \hbox (26.26195pt too wide) in paragraph at lines 56--57
 []\T1/cmr/bx/n/10 Authenticated Per-fect Links\T1/cmr/m/n/10 : Each APL mes-sag
 e car-ries \T1/cmtt/m/n/10 senderId\T1/cmr/m/n/10 , \T1/cmtt/m/n/10 messageId\T
 1/cmr/m/n/10 ,
  []
 
 
-Overfull \hbox (0.90674pt too wide) in paragraph at lines 50--51
+Overfull \hbox (0.90674pt too wide) in paragraph at lines 56--57
 \T1/cmr/m/n/10 and \T1/cmtt/m/n/10 payload\T1/cmr/m/n/10 . The sender signs the
  tu-ple \T1/cmtt/m/n/10 (senderId, messageId, payload)
  []
 
 [2]
-Overfull \hbox (18.75934pt too wide) in paragraph at lines 61--62
+Overfull \hbox (18.75934pt too wide) in paragraph at lines 67--68
 \T1/cmr/m/n/10 over-sized string, miss-ing sig-na-ture) are dis-carded by \T1/c
 mtt/m/n/10 ClientProtocol.parseRequest
  []
 
 
-Overfull \hbox (2.43pt too wide) in paragraph at lines 65--66
+Overfull \hbox (2.43pt too wide) in paragraph at lines 71--72
 \T1/cmtt/m/n/10 System.currentTimeMillis() - lastProgressTimeMs > viewTimeoutMs
 \T1/cmr/m/n/10 , the
  []
 
-[3]
-Underfull \hbox (badness 4886) in paragraph at lines 98--98
+
+Underfull \hbox (badness 4886) in paragraph at lines 99--99
 []|\T1/cmr/m/n/9 APL: ver-ify sig-na-ture
  []
 
 
-Underfull \hbox (badness 3312) in paragraph at lines 98--98
+Underfull \hbox (badness 3312) in paragraph at lines 99--99
 \T1/cmr/m/n/9 only ver-i-fied mes-sages
  []
 
 
-Underfull \hbox (badness 7221) in paragraph at lines 98--98
+Underfull \hbox (badness 7221) in paragraph at lines 99--99
 \T1/cmr/m/n/9 in-valid votes ig-nored.
  []
 
 
-Underfull \hbox (badness 2521) in paragraph at lines 98--98
+Underfull \hbox (badness 2521) in paragraph at lines 99--99
 []|\T1/cmr/m/n/9 Leader pro-poses block
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 []|\T1/cmr/m/n/9 BlockValidator: block
  []
 
 
-Underfull \hbox (badness 6332) in paragraph at lines 98--98
+Underfull \hbox (badness 6332) in paragraph at lines 99--99
 \T1/cmr/m/n/9 ver-i-fied client re-quest
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 \T1/cmr/m/n/9 (re-questId + string).
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 []|\T1/cmr/m/n/9 Timeout-based pace-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 \T1/cmr/m/n/9 maker; view change;
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 \T1/cmr/m/n/9 new leader con-tin-ues
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 \T1/cmr/m/n/9 view change al-lows
  []
 
 
-Underfull \hbox (badness 3058) in paragraph at lines 98--98
+Underfull \hbox (badness 3058) in paragraph at lines 99--99
 \T1/cmr/m/n/9 progress un-der par-tial
  []
 
 
-Underfull \hbox (badness 2762) in paragraph at lines 98--98
+Underfull \hbox (badness 2762) in paragraph at lines 99--99
 []|\T1/cmr/m/n/9 APL dedu-pli-ca-tion by
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 \T1/cmr/m/n/9 (senderId, mes-sageId)
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 []|\T1/cmr/m/n/9 ClientProtocol: type,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 98--98
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
 \T1/cmr/m/n/9 parseRequest re-turns
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [4]
-Overfull \hbox (27.56828pt too wide) in paragraph at lines 106--107
+[3]
+Overfull \hbox (27.56828pt too wide) in paragraph at lines 107--108
 []\T1/cmr/bx/n/10 ByzantineTest\T1/cmr/m/n/10 : One replica (e.g., replica 3) u
 ses a \T1/cmtt/m/n/10 CorruptingConsensusNetwork
  []
 
 
-Overfull \hbox (1.35246pt too wide) in paragraph at lines 107--108
+Overfull \hbox (1.35246pt too wide) in paragraph at lines 108--109
 []\T1/cmr/bx/n/10 HotStuffIntegrationTest#viewChangeAfterLeaderTimeout\T1/cmr/m
 /n/10 : Replica
  []
 
-[5
+[4
 pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.108   \item \textbf
-                     {IntrusiveNetworkTest}: Uses \texttt{DropConsensusNetwo...
-] [6]
-Underfull \hbox (badness 10000) in paragraph at lines 130--131
+l.111 \end{itemize}
+                   ]
+Underfull \hbox (badness 10000) in paragraph at lines 132--133
 []\T1/cmr/m/n/9 Information for Au-thors of Springer Com-puter Sci-ence Pro-cee
 d-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 130--131
+Underfull \hbox (badness 10000) in paragraph at lines 132--133
 \T1/cmr/m/n/9 ings (LNCS). []$\T1/cmtt/m/n/9 https : / / www . springer . com /
  gp / computer-[]science / lncs /
  []
 
-[7] (./report.aux)
+[5] (./report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: D1CED5F9F91A95BD6811C8C5776C7FB8;398.
  ) 
 Here is how much of TeX's memory you used:
- 9823 strings out of 469006
- 147150 string characters out of 5454814
- 564811 words of memory out of 5000000
+ 9821 strings out of 469006
+ 147138 string characters out of 5454814
+ 566811 words of memory out of 5000000
  38386 multiletter control sequences out of 15000+600000
  639997 words of font info for 71 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 75i,11n,79p,1331b,591s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,11n,79p,1331b,519s stack positions out of 10000i,1000n,20000p,200000b,200000s
  </Users/guilhermeribeiro/Library/texlive/2026basic/texmf-var/fonts/pk/ljfour
 /jknappen/ec/ectt0900.600pk> </Users/guilhermeribeiro/Library/texlive/2026basic
 /texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1000.600pk> </Users/guilhermeribeiro
@@ -656,10 +648,10 @@ fb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi
 mr10.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts/c
 m/cmr9.pfb></usr/local/texlive/2026basic/texmf-dist/fonts/type1/public/amsfonts
 /cm/cmsy10.pfb>
-Output written on report.pdf (7 pages, 168709 bytes).
+Output written on report.pdf (5 pages, 168038 bytes).
 PDF statistics:
- 527 PDF objects out of 1000 (max. 8388607)
- 116 compressed objects within 2 object streams
- 28 named destinations out of 1000 (max. 500000)
+ 517 PDF objects out of 1000 (max. 8388607)
+ 108 compressed objects within 2 object streams
+ 26 named destinations out of 1000 (max. 500000)
  9 words of extra memory for PDF output out of 10000 (max. 10000000)
 
