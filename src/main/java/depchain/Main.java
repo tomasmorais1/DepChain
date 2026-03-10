@@ -64,7 +64,13 @@ public class Main {
                 config.privateKey, MultiProcessConfig.VIEW_TIMEOUT_MS);
         System.out.println("Member " + id + " running (consensus port " + consensusPort + ", client port " + clientPort + "). Press Enter to stop.");
         try {
-            System.in.read();
+            if (System.console() != null) {
+                System.in.read();
+            } else {
+                Thread.currentThread().join();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } finally {
             member.close();
         }
