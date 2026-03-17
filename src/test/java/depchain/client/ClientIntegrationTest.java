@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Timeout;
 import depchain.blockchain.BlockchainMember;
 import depchain.config.Membership;
 import depchain.config.NodeAddress;
-import depchain.links.AuthenticatedPerfectLink;
-import depchain.transport.FairLossLink;
-import depchain.transport.UdpTransport;
+import depchain.demo.MultiProcessConfig;
+import threshsig.Dealer;
+import threshsig.GroupKey;
+import threshsig.KeyShare;
 
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +21,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Client broadcasts append to all members; leader proposes; all decide and respond.
+ * Client broadcasts append to all members; leader proposes; all decide and
+ * respond.
  */
 class ClientIntegrationTest {
 
@@ -30,15 +33,20 @@ class ClientIntegrationTest {
         int basePort = 24000 + (int) (Math.random() * 1000);
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048);
+        int quorum = 2 * (n - 1) / 3 + 1;
+        Dealer dealer = new Dealer(512);
+        dealer.generateKeys(quorum, n);
+        GroupKey groupKey = dealer.getGroupKey();
+        KeyShare[] shares = dealer.getShares();
 
         List<Integer> ids = new ArrayList<>();
         Map<Integer, NodeAddress> addrs = new ConcurrentHashMap<>();
         Map<Integer, java.security.PublicKey> pubs = new ConcurrentHashMap<>();
-        Map<Integer, java.security.KeyPair> keys = new ConcurrentHashMap<>();
+        Map<Integer, KeyPair> keys = new ConcurrentHashMap<>();
         for (int i = 0; i < n; i++) {
             ids.add(i);
             addrs.put(i, new NodeAddress("127.0.0.1", basePort + i));
-            java.security.KeyPair kp = gen.generateKeyPair();
+            KeyPair kp = gen.generateKeyPair();
             keys.put(i, kp);
             pubs.put(i, kp.getPublic());
         }
@@ -50,7 +58,9 @@ class ClientIntegrationTest {
             int consensusPort = basePort + i;
             int clientPort = basePort + n + 100 + i;
             clientTargets.add(new NodeAddress("127.0.0.1", clientPort));
-            BlockchainMember m = new BlockchainMember(i, membership, consensusPort, clientPort, keys.get(i).getPrivate(), 3000L);
+            MultiProcessConfig.MemberConfig config = new MultiProcessConfig.MemberConfig(
+                    membership, keys.get(i).getPrivate(), shares[i], groupKey);
+            BlockchainMember m = new BlockchainMember(i, membership, consensusPort, clientPort, config, 3000L);
             members.add(m);
         }
 
@@ -63,14 +73,16 @@ class ClientIntegrationTest {
 
             for (int t = 0; t < 50; t++) {
                 int size = members.get(0).getBlockchain().size();
-                if (size >= 1) break;
+                if (size >= 1)
+                    break;
                 Thread.sleep(100);
             }
             assertEquals(1, members.get(0).getBlockchain().size());
             assertEquals("hello-from-client", members.get(0).getBlockchain().getLog().get(0));
         } finally {
             client.close();
-            for (BlockchainMember m : members) m.close();
+            for (BlockchainMember m : members)
+                m.close();
         }
     }
 }

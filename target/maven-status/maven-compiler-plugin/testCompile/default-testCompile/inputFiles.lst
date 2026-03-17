@@ -1,8 +1,14 @@
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/consensus/CorruptingConsensusNetwork.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/consensus/IntrusiveNetworkTest.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/consensus/DropConsensusNetwork.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/consensus/ByzantineTest.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/links/AuthenticatedPerfectLinkTest.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/demo/MultiProcessConfigIntegrationTest.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/consensus/HotStuffIntegrationTest.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/test/java/depchain/client/ClientIntegrationTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ConsensusTestHarness.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/DropConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/demo/MultiProcessConfigIntegrationTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ReplicaFailingTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/client/ClientIntegrationTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/links/AuthenticatedPerfectLinkTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/CorruptingConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ReplayConsensusTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/SilentConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/IntrusiveNetworkTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ByzantineTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ReplayConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/VoteDroppingConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/HotStuffIntegrationTest.java

@@ -9,6 +9,10 @@ import depchain.links.AuthenticatedPerfectLink;
 import depchain.transport.FairLossLink;
 import depchain.transport.UdpTransport;
 
+import threshsig.Dealer;
+import threshsig.GroupKey;
+import threshsig.KeyShare;
+
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -20,7 +24,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test: 4 replicas, leader proposes blocks, all decide and append to blockchain.
+ * Integration test: 4 replicas, leader proposes blocks, all decide and append
+ * to blockchain.
  */
 class HotStuffIntegrationTest {
 
@@ -31,6 +36,11 @@ class HotStuffIntegrationTest {
         int basePort = 17000 + (int) (Math.random() * 2000);
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048);
+        int quorum = 2 * (n - 1) / 3 + 1;
+        Dealer dealer = new Dealer(512);
+        dealer.generateKeys(quorum, n);
+        GroupKey groupKey = dealer.getGroupKey();
+        KeyShare[] shares = dealer.getShares();
 
         List<Integer> ids = new ArrayList<>();
         Map<Integer, NodeAddress> addrs = new ConcurrentHashMap<>();
@@ -58,8 +68,7 @@ class HotStuffIntegrationTest {
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
             APLConsensusNetwork net = new APLConsensusNetwork(apl, membership);
             BlockchainService chain = new BlockchainService();
-            int idx = i;
-            HotStuffReplica replica = new HotStuffReplica(i, membership, net, keys.get(i).getPrivate(), chain::onDecide);
+            HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide);
             udps.add(udp);
             fairLosses.add(fl);
             apls.add(apl);
@@ -74,8 +83,10 @@ class HotStuffIntegrationTest {
 
             for (int t = 0; t < 300; t++) {
                 int total = 0;
-                for (BlockchainService c : blockchains) total += c.size();
-                if (total == n) break;
+                for (BlockchainService c : blockchains)
+                    total += c.size();
+                if (total == n)
+                    break;
                 Thread.sleep(100);
             }
 
@@ -84,8 +95,10 @@ class HotStuffIntegrationTest {
                 assertEquals("hello", c.getLog().get(0));
             }
         } finally {
-            for (HotStuffReplica r : replicas) r.close();
-            for (AuthenticatedPerfectLink a : apls) a.close();
+            for (HotStuffReplica r : replicas)
+                r.close();
+            for (AuthenticatedPerfectLink a : apls)
+                a.close();
         }
     }
 
@@ -96,6 +109,11 @@ class HotStuffIntegrationTest {
         int basePort = 18000 + (int) (Math.random() * 2000);
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048);
+        int quorum = 2 * (n - 1) / 3 + 1;
+        Dealer dealer = new Dealer(512);
+        dealer.generateKeys(quorum, n);
+        GroupKey groupKey = dealer.getGroupKey();
+        KeyShare[] shares = dealer.getShares();
 
         List<Integer> ids = new ArrayList<>();
         Map<Integer, NodeAddress> addrs = new ConcurrentHashMap<>();
@@ -120,7 +138,7 @@ class HotStuffIntegrationTest {
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
             APLConsensusNetwork net = new APLConsensusNetwork(apl, membership);
             BlockchainService chain = new BlockchainService();
-            HotStuffReplica replica = new HotStuffReplica(i, membership, net, keys.get(i).getPrivate(), chain::onDecide);
+            HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide);
             apls.add(apl);
             blockchains.add(chain);
             replicas.add(replica);
@@ -129,16 +147,19 @@ class HotStuffIntegrationTest {
         try {
             String payload0 = "msg-0";
             replicas.get(0).propose(new Block(0, payload0.getBytes(StandardCharsets.UTF_8)));
-            while (blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0) < 1) Thread.sleep(50);
+            while (blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0) < 1)
+                Thread.sleep(50);
 
             String payload1 = "msg-1";
             replicas.get(1).propose(new Block(1, payload1.getBytes(StandardCharsets.UTF_8)));
-            while (blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0) < 2) Thread.sleep(50);
+            while (blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0) < 2)
+                Thread.sleep(50);
 
             String payload2 = "msg-2";
             replicas.get(2).propose(new Block(2, payload2.getBytes(StandardCharsets.UTF_8)));
             for (int t = 0; t < 300; t++) {
-                if (blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0) >= 3) break;
+                if (blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0) >= 3)
+                    break;
                 Thread.sleep(100);
             }
 
@@ -149,12 +170,17 @@ class HotStuffIntegrationTest {
                 assertEquals("msg-2", c.getLog().get(2));
             }
         } finally {
-            for (HotStuffReplica r : replicas) r.close();
-            for (AuthenticatedPerfectLink a : apls) a.close();
+            for (HotStuffReplica r : replicas)
+                r.close();
+            for (AuthenticatedPerfectLink a : apls)
+                a.close();
         }
     }
 
-    /** Leader (replica 0) never proposes; after timeout replicas move to view 1; replica 1 proposes and all decide. */
+    /**
+     * Leader (replica 0) never proposes; after timeout replicas move to view 1;
+     * replica 1 proposes and all decide.
+     */
     @Test
     @Timeout(value = 25, unit = TimeUnit.SECONDS)
     void viewChangeAfterLeaderTimeout() throws Exception {
@@ -163,6 +189,11 @@ class HotStuffIntegrationTest {
         long viewTimeoutMs = 800;
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048);
+        int quorum = 2 * (n - 1) / 3 + 1;
+        Dealer dealer = new Dealer(512);
+        dealer.generateKeys(quorum, n);
+        GroupKey groupKey = dealer.getGroupKey();
+        KeyShare[] shares = dealer.getShares();
 
         List<Integer> ids = new ArrayList<>();
         Map<Integer, NodeAddress> addrs = new ConcurrentHashMap<>();
@@ -187,7 +218,7 @@ class HotStuffIntegrationTest {
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
             APLConsensusNetwork net = new APLConsensusNetwork(apl, membership);
             BlockchainService chain = new BlockchainService();
-            HotStuffReplica replica = new HotStuffReplica(i, membership, net, keys.get(i).getPrivate(), chain::onDecide, viewTimeoutMs);
+            HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide, viewTimeoutMs);
             apls.add(apl);
             blockchains.add(chain);
             replicas.add(replica);
@@ -200,7 +231,8 @@ class HotStuffIntegrationTest {
 
             for (int t = 0; t < 200; t++) {
                 int minSize = blockchains.stream().mapToInt(BlockchainService::size).min().orElse(0);
-                if (minSize >= 1) break;
+                if (minSize >= 1)
+                    break;
                 Thread.sleep(100);
             }
 
@@ -209,8 +241,10 @@ class HotStuffIntegrationTest {
                 assertEquals("after-view-change", c.getLog().get(0));
             }
         } finally {
-            for (HotStuffReplica r : replicas) r.close();
-            for (AuthenticatedPerfectLink a : apls) a.close();
+            for (HotStuffReplica r : replicas)
+                r.close();
+            for (AuthenticatedPerfectLink a : apls)
+                a.close();
         }
     }
 }

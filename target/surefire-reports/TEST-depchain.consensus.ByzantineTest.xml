@@ -1,89 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="depchain.consensus.ByzantineTest" time="0.39" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="depchain.consensus.ByzantineTest" time="0.664" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="17"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
-    <property name="java.class.path" value="/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/test-classes:/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/classes:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.3/junit-jupiter-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.3/junit-jupiter-api-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/tomasmorais/.m2/repository/org/junit/platform/junit-platform-commons/1.9.3/junit-platform-commons-1.9.3.jar:/Users/tomasmorais/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.3/junit-jupiter-params-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.3/junit-jupiter-engine-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/junit/platform/junit-platform-engine/1.9.3/junit-platform-engine-1.9.3.jar:"/>
-    <property name="java.vm.vendor" value="Oracle Corporation"/>
+    <property name="java.class.path" value="/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/test-classes:/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/classes:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.3/junit-jupiter-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.3/junit-jupiter-api-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/platform/junit-platform-commons/1.9.3/junit-platform-commons-1.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.3/junit-jupiter-params-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.3/junit-jupiter-engine-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/platform/junit-platform-engine/1.9.3/junit-platform-engine-1.9.3.jar:"/>
+    <property name="java.vm.vendor" value="Eclipse Adoptium"/>
     <property name="sun.arch.data.model" value="64"/>
-    <property name="java.vendor.url" value="https://java.oracle.com/"/>
+    <property name="java.vendor.url" value="https://adoptium.net/"/>
     <property name="os.name" value="Mac OS X"/>
     <property name="java.vm.specification.version" value="17"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
-    <property name="user.country" value="PT"/>
-    <property name="sun.boot.library.path" value="/Library/Java/JavaVirtualMachines/jdk-17.0.4.1.jdk/Contents/Home/lib"/>
-    <property name="sun.java.command" value="/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/surefire/surefirebooter-20260310165700651_3.jar /Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/surefire 2026-03-10T16-57-00_603-jvmRun1 surefire-20260310165700651_1tmp surefire_0-20260310165700651_2tmp"/>
+    <property name="user.country" value="GB"/>
+    <property name="sun.boot.library.path" value="/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/lib"/>
+    <property name="sun.java.command" value="/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/surefire/surefirebooter-20260317225415402_3.jar /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/surefire 2026-03-17T22-54-15_350-jvmRun1 surefire-20260317225415402_1tmp surefire_0-20260317225415402_2tmp"/>
     <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="jdk.debug" value="release"/>
-    <property name="surefire.test.class.path" value="/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/test-classes:/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/classes:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.3/junit-jupiter-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.3/junit-jupiter-api-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/tomasmorais/.m2/repository/org/junit/platform/junit-platform-commons/1.9.3/junit-platform-commons-1.9.3.jar:/Users/tomasmorais/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.3/junit-jupiter-params-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.3/junit-jupiter-engine-5.9.3.jar:/Users/tomasmorais/.m2/repository/org/junit/platform/junit-platform-engine/1.9.3/junit-platform-engine-1.9.3.jar:"/>
+    <property name="surefire.test.class.path" value="/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/test-classes:/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/classes:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter/5.9.3/junit-jupiter-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.9.3/junit-jupiter-api-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/platform/junit-platform-commons/1.9.3/junit-platform-commons-1.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.9.3/junit-jupiter-params-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.9.3/junit-jupiter-engine-5.9.3.jar:/Users/guilhermeribeiro/.m2/repository/org/junit/platform/junit-platform-engine/1.9.3/junit-platform-engine-1.9.3.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
-    <property name="user.home" value="/Users/tomasmorais"/>
-    <property name="user.language" value="pt"/>
+    <property name="user.home" value="/Users/guilhermeribeiro"/>
+    <property name="user.language" value="en"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
-    <property name="java.version.date" value="2022-08-18"/>
-    <property name="java.home" value="/Library/Java/JavaVirtualMachines/jdk-17.0.4.1.jdk/Contents/Home"/>
+    <property name="java.version.date" value="2024-01-16"/>
+    <property name="java.home" value="/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home"/>
     <property name="file.separator" value="/"/>
-    <property name="basedir" value="/Users/tomasmorais/Documents/MEIC/SEC/projectcursor"/>
+    <property name="basedir" value="/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain"/>
     <property name="java.vm.compressedOopsMode" value="Zero based"/>
     <property name="line.separator" value="&#10;"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
-    <property name="surefire.real.class.path" value="/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/target/surefire/surefirebooter-20260310165700651_3.jar"/>
+    <property name="surefire.real.class.path" value="/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/target/surefire/surefirebooter-20260317225415402_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
-    <property name="java.runtime.version" value="17.0.4.1+1-LTS-2"/>
-    <property name="user.name" value="tomasmorais"/>
+    <property name="java.runtime.version" value="17.0.10+7"/>
+    <property name="user.name" value="guilhermeribeiro"/>
     <property name="path.separator" value=":"/>
-    <property name="os.version" value="26.1"/>
-    <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
+    <property name="os.version" value="26.3.1"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
     <property name="file.encoding" value="UTF-8"/>
-    <property name="java.vm.name" value="Java HotSpot(TM) 64-Bit Server VM"/>
-    <property name="localRepository" value="/Users/tomasmorais/.m2/repository"/>
-    <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
-    <property name="java.io.tmpdir" value="/var/folders/y8/lqv8y8cd1tx32tg7tcwydbm00000gn/T/"/>
-    <property name="java.version" value="17.0.4.1"/>
-    <property name="user.dir" value="/Users/tomasmorais/Documents/MEIC/SEC/projectcursor"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Temurin-17.0.10+7"/>
+    <property name="localRepository" value="/Users/guilhermeribeiro/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/adoptium/adoptium-support/issues"/>
+    <property name="java.io.tmpdir" value="/var/folders/mg/rpytn0ys1p3d69fprc8v03s00000gn/T/"/>
+    <property name="java.version" value="17.0.10"/>
+    <property name="user.dir" value="/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain"/>
     <property name="os.arch" value="aarch64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
     <property name="native.encoding" value="UTF-8"/>
-    <property name="java.library.path" value="/Users/tomasmorais/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
-    <property name="java.vm.info" value="mixed mode, sharing"/>
-    <property name="java.vendor" value="Oracle Corporation"/>
-    <property name="java.vm.version" value="17.0.4.1+1-LTS-2"/>
+    <property name="java.library.path" value="/Users/guilhermeribeiro/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="java.vm.info" value="mixed mode"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.vm.version" value="17.0.10+7"/>
     <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
     <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="java.class.version" value="61.0"/>
   </properties>
-  <testcase name="oneByzantineReplicaInvalidVoteCorrectReplicasStillDecide" classname="depchain.consensus.ByzantineTest" time="0.389">
-    <system-err><![CDATA[[member 0] leader sent PREPARE view 0
-[member 3] consensus recv PREPARE from 0
+  <testcase name="oneByzantineReplicaInvalidVoteCorrectReplicasStillDecide" classname="depchain.consensus.ByzantineTest" time="0.664">
+    <system-err><![CDATA[[member 0] consensus recv NEW_VIEW from 1
+[member 0] consensus recv NEW_VIEW from 2
+[member 0] consensus recv NEW_VIEW from 3
+[member 0] leader sent PREPARE view 0
 [member 1] consensus recv PREPARE from 0
-[member 2] consensus recv PREPARE from 0
 [member 0] consensus recv PREPARE from 0
+[member 3] consensus recv PREPARE from 0
+[member 2] consensus recv PREPARE from 0
 [member 0] consensus recv PREPARE_VOTE from 1
-[member 0] consensus recv PREPARE_VOTE from 2
-[member 0] consensus recv PREPARE_VOTE from 3
 [member 0] consensus recv PREPARE_VOTE from 0
-[member 0] consensus recv PRE_COMMIT from 0
+[member 0] consensus recv PREPARE_VOTE from 3
+[member 0] consensus recv PREPARE_VOTE from 2
 [member 3] consensus recv PRE_COMMIT from 0
-[member 2] consensus recv PRE_COMMIT from 0
 [member 1] consensus recv PRE_COMMIT from 0
-[member 0] consensus recv PRE_COMMIT_VOTE from 0
+[member 2] consensus recv PRE_COMMIT from 0
+[member 0] consensus recv PRE_COMMIT from 0
+[member 0] consensus recv PRE_COMMIT_VOTE from 1
 [member 0] consensus recv PRE_COMMIT_VOTE from 2
 [member 0] consensus recv PRE_COMMIT_VOTE from 3
-[member 0] consensus recv PRE_COMMIT_VOTE from 1
-[member 1] consensus recv COMMIT from 0
-[member 0] consensus recv COMMIT from 0
-[member 0] consensus recv COMMIT_VOTE from 1
+[member 0] consensus recv PRE_COMMIT_VOTE from 0
 [member 2] consensus recv COMMIT from 0
-[member 0] consensus recv COMMIT_VOTE from 0
+[member 1] consensus recv COMMIT from 0
 [member 3] consensus recv COMMIT from 0
+[member 0] consensus recv COMMIT from 0
 [member 0] consensus recv COMMIT_VOTE from 2
-[member 1] consensus recv DECIDE from 0
+[member 0] consensus recv COMMIT_VOTE from 1
 [member 0] consensus recv COMMIT_VOTE from 3
-[member 0] consensus recv DECIDE from 0
-[member 2] consensus recv DECIDE from 0
+[member 0] consensus recv COMMIT_VOTE from 0
 [member 3] consensus recv DECIDE from 0
+[member 1] consensus recv DECIDE from 0
+[member 2] consensus recv DECIDE from 0
+[member 0] consensus recv DECIDE from 0
+[member 1] consensus recv NEW_VIEW from 0
+[member 1] consensus recv NEW_VIEW from 3
+[member 1] consensus recv NEW_VIEW from 2
 ]]></system-err>
   </testcase>
 </testsuite>

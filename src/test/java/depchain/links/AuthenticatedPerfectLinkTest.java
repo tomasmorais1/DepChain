@@ -16,19 +16,18 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * APL tests: delivery, rejection of invalid messages, deduplication by message id.
+ * APL tests: delivery, rejection of invalid messages, deduplication by message
+ * id.
  */
 class AuthenticatedPerfectLinkTest {
 
     static Membership twoNodeMembership(KeyPair k0, KeyPair k1, int port0, int port1) {
         return new Membership(
-            List.of(0, 1),
-            Map.of(
-                0, new NodeAddress("127.0.0.1", port0),
-                1, new NodeAddress("127.0.0.1", port1)
-            ),
-            Map.of(0, k0.getPublic(), 1, k1.getPublic())
-        );
+                List.of(0, 1),
+                Map.of(
+                        0, new NodeAddress("127.0.0.1", port0),
+                        1, new NodeAddress("127.0.0.1", port1)),
+                Map.of(0, k0.getPublic(), 1, k1.getPublic()));
     }
 
     /** Node 0 sends; node 1 receives the same payload and sender id. */
@@ -39,7 +38,7 @@ class AuthenticatedPerfectLinkTest {
         gen.initialize(2048);
         KeyPair k0 = gen.generateKeyPair();
         KeyPair k1 = gen.generateKeyPair();
-        int port0 = 14000 + (int)(Math.random() * 1000);
+        int port0 = 14000 + (int) (Math.random() * 1000);
         int port1 = port0 + 1;
         Membership m = twoNodeMembership(k0, k1, port0, port1);
 
@@ -56,7 +55,8 @@ class AuthenticatedPerfectLinkTest {
             AuthenticatedPerfectLink.DeliveredMessage received = null;
             for (int i = 0; i < 200; i++) {
                 received = apl1.poll();
-                if (received != null) break;
+                if (received != null)
+                    break;
                 Thread.sleep(20);
             }
             assertNotNull(received);
@@ -76,7 +76,7 @@ class AuthenticatedPerfectLinkTest {
         gen.initialize(2048);
         KeyPair k0 = gen.generateKeyPair();
         KeyPair k1 = gen.generateKeyPair();
-        int port0 = 15000 + (int)(Math.random() * 1000);
+        int port0 = 15000 + (int) (Math.random() * 1000);
         int port1 = port0 + 1;
         Membership m = twoNodeMembership(k0, k1, port0, port1);
 
@@ -90,7 +90,7 @@ class AuthenticatedPerfectLinkTest {
         try {
             byte[] payload = "hello".getBytes();
             apl0.send(payload, 1);
-            assertNull(APLMessage.parse(new byte[]{1, 2, 3}));
+            assertNull(APLMessage.parse(new byte[] { 1, 2, 3 }));
             assertNull(APLMessage.parse(new byte[0]));
         } finally {
             apl0.close();
@@ -106,7 +106,7 @@ class AuthenticatedPerfectLinkTest {
         gen.initialize(2048);
         KeyPair k0 = gen.generateKeyPair();
         KeyPair k1 = gen.generateKeyPair();
-        int port0 = 16000 + (int)(Math.random() * 1000);
+        int port0 = 16000 + (int) (Math.random() * 1000);
         int port1 = port0 + 1;
         Membership m = twoNodeMembership(k0, k1, port0, port1);
 
@@ -126,16 +126,18 @@ class AuthenticatedPerfectLinkTest {
             AuthenticatedPerfectLink.DeliveredMessage first = null;
             for (int i = 0; i < 500; i++) {
                 first = apl1.poll();
-                if (first != null) break;
+                if (first != null)
+                    break;
                 Thread.sleep(20);
             }
             assertNotNull(first, "should receive at least one message");
             assertEquals(0, first.getSenderId());
             assertArrayEquals(payload, first.getPayload());
-            
+
             int extra = 0;
             for (int i = 0; i < 100; i++) {
-                if (apl1.poll() != null) extra++;
+                if (apl1.poll() != null)
+                    extra++;
                 Thread.sleep(20);
             }
             assertEquals(0, extra, "no duplicate delivery for same messageId");

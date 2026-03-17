@@ -1,20 +1,30 @@
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/Phase.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/QuorumCertificate.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/HotStuffReplica.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/config/Membership.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/config/NodeAddress.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/transport/UdpTransport.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/transport/FairLossLink.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/demo/Demo.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/client/ClientProtocol.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/ConsensusMessage.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/APLConsensusNetwork.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/blockchain/BlockchainService.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/links/AuthenticatedPerfectLink.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/demo/MultiProcessConfig.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/blockchain/BlockchainMember.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/client/DepChainClient.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/Block.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/links/APLMessage.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/consensus/ConsensusNetwork.java
-/Users/tomasmorais/Documents/MEIC/SEC/projectcursor/src/main/java/depchain/Main.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/Dealer.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/config/Membership.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/HotStuffReplica.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/ThresholdSigException.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/KeyShare.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/BlockchainService.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/client/ClientProtocol.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/QuorumCertificate.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/transport/UdpTransport.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/links/AuthenticatedPerfectLink.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/Verifier.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/ThreshSigWire.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/ConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/config/NodeAddress.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/transport/FairLossLink.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/BlockchainMember.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/demo/MultiProcessConfig.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/demo/Demo.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/SigShare.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/ConsensusMessage.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/Poly.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/Phase.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/SafePrimeGen.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/Main.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/links/APLMessage.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/GroupKey.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/Block.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/ThreshUtil.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/APLConsensusNetwork.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/client/DepChainClient.java

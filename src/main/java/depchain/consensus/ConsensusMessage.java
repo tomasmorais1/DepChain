@@ -1,13 +1,16 @@
 package depchain.consensus;
 
+import threshsig.GroupKey;
+import threshsig.SigShare;
+import threshsig.ThreshSigWire;
+
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Wire format for HotStuff consensus messages.
- * Type 1=PREPARE, 2=PREPARE_VOTE, 3=PRE_COMMIT, 4=PRE_COMMIT_VOTE, 5=COMMIT, 6=COMMIT_VOTE, 7=DECIDE.
+ * Type 1=PREPARE, 2=PREPARE_VOTE, 3=PRE_COMMIT, 4=PRE_COMMIT_VOTE, 5=COMMIT, 6=COMMIT_VOTE, 7=DECIDE, 8=NEW_VIEW.
  */
 public final class ConsensusMessage {
 
@@ -18,6 +21,7 @@ public final class ConsensusMessage {
     public static final byte TYPE_COMMIT = 5;
     public static final byte TYPE_COMMIT_VOTE = 6;
     public static final byte TYPE_DECIDE = 7;
+    public static final byte TYPE_NEW_VIEW = 8;
 
     public static byte[] encodePrepare(long view, Block block, QuorumCertificate highQC) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -30,15 +34,16 @@ public final class ConsensusMessage {
         return out.toByteArray();
     }
 
-    public static byte[] encodePrepareVote(long view, byte[] blockHash, byte[] signature) throws IOException {
+    /** Encode vote with threshold signature share (sigShareWire = ThreshSigWire.encodeSigShare(sigShare)). */
+    public static byte[] encodePrepareVote(long view, byte[] blockHash, byte[] sigShareWire) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream d = new DataOutputStream(out);
         d.writeByte(TYPE_PREPARE_VOTE);
         d.writeLong(view);
         d.writeInt(blockHash.length);
         d.write(blockHash);
-        d.writeInt(signature.length);
-        d.write(signature);
+        d.writeInt(sigShareWire.length);
+        d.write(sigShareWire);
         d.flush();
         return out.toByteArray();
     }
@@ -54,15 +59,15 @@ public final class ConsensusMessage {
         return out.toByteArray();
     }
 
-    public static byte[] encodePreCommitVote(long view, byte[] blockHash, byte[] signature) throws IOException {
+    public static byte[] encodePreCommitVote(long view, byte[] blockHash, byte[] sigShareWire) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream d = new DataOutputStream(out);
         d.writeByte(TYPE_PRE_COMMIT_VOTE);
         d.writeLong(view);
         d.writeInt(blockHash.length);
         d.write(blockHash);
-        d.writeInt(signature.length);
-        d.write(signature);
+        d.writeInt(sigShareWire.length);
+        d.write(sigShareWire);
         d.flush();
         return out.toByteArray();
     }
@@ -78,15 +83,15 @@ public final class ConsensusMessage {
         return out.toByteArray();
     }
 
-    public static byte[] encodeCommitVote(long view, byte[] blockHash, byte[] signature) throws IOException {
+    public static byte[] encodeCommitVote(long view, byte[] blockHash, byte[] sigShareWire) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream d = new DataOutputStream(out);
         d.writeByte(TYPE_COMMIT_VOTE);
         d.writeLong(view);
         d.writeInt(blockHash.length);
         d.write(blockHash);
-        d.writeInt(signature.length);
-        d.write(signature);
+        d.writeInt(sigShareWire.length);
+        d.write(sigShareWire);
         d.flush();
         return out.toByteArray();
     }
@@ -97,6 +102,16 @@ public final class ConsensusMessage {
         d.writeByte(TYPE_DECIDE);
         d.writeLong(view);
         writeQC(d, commitQC);
+        d.flush();
+        return out.toByteArray();
+    }
+
+    /** New view: replica declares it is in the given view (leader waits for n-f before sending PREPARE). */
+    public static byte[] encodeNewView(long view) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream d = new DataOutputStream(out);
+        d.writeByte(TYPE_NEW_VIEW);
+        d.writeLong(view);
         d.flush();
         return out.toByteArray();
     }
@@ -131,11 +146,14 @@ public final class ConsensusMessage {
         d.writeByte(qc.getPhase().ordinal());
         d.writeInt(qc.getBlockHash().length);
         d.write(qc.getBlockHash());
-        d.writeInt(qc.getSignatures().size());
-        for (Map.Entry<Integer, byte[]> e : qc.getSignatures().entrySet()) {
-            d.writeInt(e.getKey());
-            d.writeInt(e.getValue().length);
-            d.write(e.getValue());
+        byte[] gkBytes = qc.getGroupKey().toBytes();
+        d.writeInt(gkBytes.length);
+        d.write(gkBytes);
+        d.writeInt(qc.getSigShares().length);
+        for (SigShare s : qc.getSigShares()) {
+            byte[] b = ThreshSigWire.encodeSigShare(s);
+            d.writeInt(b.length);
+            d.write(b);
         }
     }
 
@@ -146,16 +164,19 @@ public final class ConsensusMessage {
         int hashLen = in.readInt();
         byte[] blockHash = new byte[hashLen];
         in.readFully(blockHash);
+        int gkLen = in.readInt();
+        byte[] gkBytes = new byte[gkLen];
+        in.readFully(gkBytes);
+        GroupKey groupKey = GroupKey.fromBytes(gkBytes);
         int n = in.readInt();
-        Map<Integer, byte[]> sigs = new HashMap<>();
+        List<SigShare> list = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            int replicaId = in.readInt();
-            int sigLen = in.readInt();
-            byte[] sig = new byte[sigLen];
-            in.readFully(sig);
-            sigs.put(replicaId, sig);
+            int len = in.readInt();
+            byte[] sb = new byte[len];
+            in.readFully(sb);
+            list.add(ThreshSigWire.decodeSigShare(sb));
         }
-        return new QuorumCertificate(view, phase, blockHash, sigs);
+        return new QuorumCertificate(view, phase, blockHash, groupKey, list.toArray(new SigShare[0]));
     }
 
     public static Message parse(byte[] wire) {
@@ -179,6 +200,8 @@ public final class ConsensusMessage {
                     return readVote(in, type, view);
                 case TYPE_DECIDE:
                     return new Message(type, view, null, readQC(in), null, null);
+                case TYPE_NEW_VIEW:
+                    return new Message(type, view, null, null, null, null);
                 default:
                     return null;
             }

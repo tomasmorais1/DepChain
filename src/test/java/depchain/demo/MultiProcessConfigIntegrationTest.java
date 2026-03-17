@@ -36,7 +36,7 @@ class MultiProcessConfigIntegrationTest {
             MultiProcessConfig.MemberConfig config = MultiProcessConfig.loadMemberFromFile(keyFile, i, consensusBase, clientBase);
             BlockchainMember m = new BlockchainMember(
                     i, config.membership, consensusBase + i, clientBase + i,
-                    config.privateKey, MultiProcessConfig.VIEW_TIMEOUT_MS);
+                    config, MultiProcessConfig.VIEW_TIMEOUT_MS);
             members.add(m);
         }
 

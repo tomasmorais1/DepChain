@@ -9,6 +9,10 @@ import depchain.links.AuthenticatedPerfectLink;
 import depchain.transport.FairLossLink;
 import depchain.transport.UdpTransport;
 
+import threshsig.Dealer;
+import threshsig.GroupKey;
+import threshsig.KeyShare;
+
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -21,7 +25,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Byzantine replica sends invalid votes (wrong key). Correct replicas still decide using 2f+1 valid votes.
+ * Test: assinaturas inválidas da réplica (Byzantine).
+ * One replica sends invalid/corrupt votes; correct replicas still decide using 2f+1 valid votes.
  */
 class ByzantineTest {
 
@@ -32,6 +37,11 @@ class ByzantineTest {
         int basePort = 20000 + (int) (Math.random() * 2000);
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048);
+        int quorum = 2 * (n - 1) / 3 + 1;
+        Dealer dealer = new Dealer(512);
+        dealer.generateKeys(quorum, n);
+        GroupKey groupKey = dealer.getGroupKey();
+        KeyShare[] shares = dealer.getShares();
 
         List<Integer> ids = new ArrayList<>();
         Map<Integer, NodeAddress> addrs = new ConcurrentHashMap<>();
@@ -55,9 +65,10 @@ class ByzantineTest {
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
             ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
-            if (i == 3) net = new CorruptingConsensusNetwork(net);
+            if (i == 3)
+                net = new CorruptingConsensusNetwork(net);
             BlockchainService chain = new BlockchainService();
-            HotStuffReplica replica = new HotStuffReplica(i, membership, net, keys.get(i).getPrivate(), chain::onDecide);
+            HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide);
             apls.add(apl);
             blockchains.add(chain);
             replicas.add(replica);
@@ -69,8 +80,10 @@ class ByzantineTest {
 
             for (int t = 0; t < 300; t++) {
                 int total = 0;
-                for (BlockchainService c : blockchains) total += c.size();
-                if (total == n) break;
+                for (BlockchainService c : blockchains)
+                    total += c.size();
+                if (total == n)
+                    break;
                 Thread.sleep(100);
             }
 
@@ -79,8 +92,10 @@ class ByzantineTest {
                 assertEquals("safe", c.getLog().get(0));
             }
         } finally {
-            for (HotStuffReplica r : replicas) r.close();
-            for (AuthenticatedPerfectLink a : apls) a.close();
+            for (HotStuffReplica r : replicas)
+                r.close();
+            for (AuthenticatedPerfectLink a : apls)
+                a.close();
         }
     }
 }

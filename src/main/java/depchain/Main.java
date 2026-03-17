@@ -54,7 +54,7 @@ public class Main {
         int clientPort = MultiProcessConfig.BASE_CLIENT + id;
         BlockchainMember member = new BlockchainMember(
                 id, config.membership, consensusPort, clientPort,
-                config.privateKey, MultiProcessConfig.VIEW_TIMEOUT_MS);
+                config, MultiProcessConfig.VIEW_TIMEOUT_MS);
         System.out.println("Member " + id + " running (consensus port " + consensusPort + ", client port " + clientPort + "). Press Enter to stop.");
         try {
             if (System.console() != null) {

@@ -13,6 +13,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import depchain.demo.MultiProcessConfig;
 import java.security.PrivateKey;
 import java.util.Map;
 import java.util.Objects;
@@ -51,18 +52,19 @@ public final class BlockchainMember implements AutoCloseable {
     private final AuthenticatedPerfectLink apl;
     private DatagramSocket clientSocket;
 
+    /** Requires MemberConfig with threshold keyShare and groupKey (and APL privateKey). */
     public BlockchainMember(int selfId, Membership membership, int consensusPort, int clientPort,
-                            PrivateKey privateKey, long viewTimeoutMs) throws IOException {
+                            MultiProcessConfig.MemberConfig config, long viewTimeoutMs) throws IOException {
         this.selfId = selfId;
         this.membership = membership;
         this.clientPort = clientPort;
         this.blockchain = new BlockchainService();
         this.consensusTransport = new UdpTransport(consensusPort, 8192);
         this.fairLoss = new FairLossLink(consensusTransport, 5, 40);
-        this.apl = new AuthenticatedPerfectLink(selfId, membership, fairLoss, privateKey);
+        this.apl = new AuthenticatedPerfectLink(selfId, membership, fairLoss, config.privateKey);
         ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
         HotStuffReplica.BlockValidator validator = this::isVerifiedClientBlock;
-        this.replica = new HotStuffReplica(selfId, membership, net, privateKey, this::onDecide, validator, viewTimeoutMs);
+        this.replica = new HotStuffReplica(selfId, membership, net, config.keyShare, config.groupKey, this::onDecide, validator, viewTimeoutMs);
         this.clientSocket = new DatagramSocket(clientPort);
         this.clientListenerThread = new Thread(this::clientListenLoop, "client-listener-" + selfId);
         this.clientListenerThread.setDaemon(true);
