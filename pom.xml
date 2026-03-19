@@ -36,6 +36,9 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
+                    <testExcludes>
+                        <testExclude>**/ISTCoinBesuExecutionTest.java</testExclude>
+                    </testExcludes>
                 </configuration>
             </plugin>
             <plugin>
@@ -67,4 +70,73 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>step2-evm</id>
+            <dependencies>
+                <dependency>
+                    <groupId>com.google.code.gson</groupId>
+                    <artifactId>gson</artifactId>
+                    <version>2.13.2</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.tuweni</groupId>
+                    <artifactId>tuweni-bytes</artifactId>
+                    <version>2.3.1</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.tuweni</groupId>
+                    <artifactId>tuweni-units</artifactId>
+                    <version>2.3.1</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.web3j</groupId>
+                    <artifactId>crypto</artifactId>
+                    <version>5.0.2</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.hyperledger.besu</groupId>
+                    <artifactId>evm</artifactId>
+                    <version>25.6.0</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.hyperledger.besu</groupId>
+                    <artifactId>besu-datatypes</artifactId>
+                    <version>25.2.1</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-nop</artifactId>
+                    <version>2.0.17</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <repositories>
+                <repository>
+                    <id>hyperledger-besu</id>
+                    <url>https://hyperledger.jfrog.io/artifactory/besu-maven/</url>
+                </repository>
+            </repositories>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <source>21</source>
+                            <target>21</target>
+                            <testExcludes combine.self="override"/>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
