@@ -1,0 +1,104 @@
+package depchain.blockchain;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Local Step 3 chain execution pipeline (without consensus integration).
+ */
+public final class BlockchainLedger {
+    private final List<LedgerBlock> chain = new ArrayList<>();
+    private final WorldState worldState;
+    private final TransactionExecutor executor;
+    private String lastBlockHash;
+    private long nextHeight;
+
+    public BlockchainLedger(WorldState worldState, String genesisBlockHash) {
+        this(worldState, genesisBlockHash, new TransactionExecutor());
+    }
+
+    public BlockchainLedger(
+        WorldState worldState,
+        String genesisBlockHash,
+        TransactionExecutor executor
+    ) {
+        this.worldState = worldState;
+        this.lastBlockHash = genesisBlockHash;
+        this.executor = executor;
+        this.nextHeight = 1L;
+    }
+
+    public LedgerBlock appendBlock(List<Transaction> pendingTransactions) {
+        List<Transaction> ordered = new ArrayList<>(pendingTransactions);
+        ordered.sort(Transaction.FEE_PRIORITY.thenComparingLong(Transaction::getNonce));
+
+        List<ExecutedTransaction> executed = new ArrayList<>();
+        for (Transaction tx : ordered) {
+            TransactionExecutionResult result = executor.execute(worldState, tx);
+            executed.add(new ExecutedTransaction(tx, result));
+        }
+
+        long timestamp = System.currentTimeMillis();
+        String blockHash = computeBlockHash(lastBlockHash, nextHeight, timestamp, executed);
+        LedgerBlock block = new LedgerBlock(
+            blockHash,
+            lastBlockHash,
+            nextHeight,
+            timestamp,
+            executed,
+            worldState.snapshot()
+        );
+        chain.add(block);
+        lastBlockHash = blockHash;
+        nextHeight++;
+        return block;
+    }
+
+    public List<LedgerBlock> getBlocks() {
+        return List.copyOf(chain);
+    }
+
+    public WorldState getWorldState() {
+        return worldState;
+    }
+
+    private static String computeBlockHash(
+        String previousBlockHash,
+        long height,
+        long timestamp,
+        List<ExecutedTransaction> txs
+    ) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            digest.update(previousBlockHash.getBytes(StandardCharsets.UTF_8));
+            digest.update(Long.toString(height).getBytes(StandardCharsets.UTF_8));
+            digest.update(Long.toString(timestamp).getBytes(StandardCharsets.UTF_8));
+            for (ExecutedTransaction etx : txs) {
+                Transaction tx = etx.getTransaction();
+                digest.update(tx.getFrom().getBytes(StandardCharsets.UTF_8));
+                digest.update(String.valueOf(tx.getTo()).getBytes(StandardCharsets.UTF_8));
+                digest.update(Long.toString(tx.getNonce()).getBytes(StandardCharsets.UTF_8));
+                digest.update(Long.toString(tx.getValue()).getBytes(StandardCharsets.UTF_8));
+                digest.update(Long.toString(tx.getGasPrice()).getBytes(StandardCharsets.UTF_8));
+                digest.update(Long.toString(tx.getGasLimit()).getBytes(StandardCharsets.UTF_8));
+                digest.update(tx.getData());
+                digest.update(
+                    Boolean
+                        .toString(etx.getResult().isSuccess())
+                        .getBytes(StandardCharsets.UTF_8)
+                );
+            }
+            byte[] hash = digest.digest();
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 unavailable", e);
+        }
+    }
+}

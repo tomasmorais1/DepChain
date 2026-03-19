@@ -1,0 +1,27 @@
+{
+  "blockHash": "genesis-step3",
+  "previousBlockHash": null,
+  "accounts": [
+    {
+      "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "balance": 1000000,
+      "nonce": 0
+    },
+    {
+      "address": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "balance": 1000000,
+      "nonce": 0
+    }
+  ],
+  "transactions": [
+    {
+      "from": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "to": null,
+      "nonce": 0,
+      "value": 0,
+      "gasPrice": 1,
+      "gasLimit": 5000000,
+      "data": "0x60006000"
+    }
+  ]
+}
