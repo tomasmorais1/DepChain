@@ -1,31 +1,42 @@
 package depchain.blockchain;
 
+import depchain.blockchain.evm.BesuEvmHelper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import org.apache.tuweni.bytes.Bytes;
 
 /**
- * Step 3 transaction executor (first slice):
- * native transfers + gas charging semantics.
+ * Step 3 transaction executor: native transfers, fees, and Besu EVM for contracts.
  */
 public final class TransactionExecutor {
-    /** Simplified fixed gas for native transfer in this first Step 3 slice. */
+    /** Simplified fixed gas for native transfer. */
     public static final long NATIVE_TRANSFER_GAS_USED = 21_000L;
     public static final long CONTRACT_DEPLOY_GAS_USED = 120_000L;
     public static final long CONTRACT_CALL_GAS_USED = 45_000L;
 
     private final ContractRuntimeRegistry contractRegistry;
+    private final BesuEvmHelper evm;
 
     public TransactionExecutor() {
-        this(new ContractRuntimeRegistry());
+        this(new ContractRuntimeRegistry(), new BesuEvmHelper());
     }
 
     public TransactionExecutor(ContractRuntimeRegistry contractRegistry) {
+        this(contractRegistry, new BesuEvmHelper());
+    }
+
+    public TransactionExecutor(ContractRuntimeRegistry contractRegistry, BesuEvmHelper evm) {
         this.contractRegistry = contractRegistry;
+        this.evm = evm;
     }
 
     public ContractRuntimeRegistry getContractRegistry() {
         return contractRegistry;
+    }
+
+    public BesuEvmHelper getEvm() {
+        return evm;
     }
 
     public TransactionExecutionResult execute(WorldState state, Transaction tx) {
@@ -56,8 +67,11 @@ public final class TransactionExecutor {
             );
         }
         String contractAddress = deriveContractAddress(tx.getFrom(), tx.getNonce());
+        syncAccountToEvm(state, tx.getFrom());
+        evm.setContractCode(contractAddress, tx.getData());
         contractRegistry.put(contractAddress, tx.getData());
         state.getOrCreate(contractAddress);
+        evm.upsertAccount(contractAddress, 0, 0);
         return new TransactionExecutionResult(
             true,
             true,
@@ -92,16 +106,42 @@ public final class TransactionExecutor {
                 "insufficient balance for call value"
             );
         }
-        WorldState.AccountState contract = state.getOrCreate(tx.getTo());
-        sender.setBalance(sender.getBalance() - tx.getValue());
-        contract.setBalance(contract.getBalance() + tx.getValue());
-        return new TransactionExecutionResult(
-            true,
-            true,
-            CONTRACT_CALL_GAS_USED,
-            pre.feeCharged,
-            null
-        );
+        syncAccountToEvm(state, tx.getFrom());
+        syncAccountToEvm(state, tx.getTo());
+        try {
+            evm.call(tx.getFrom(), tx.getTo(), tx.getData());
+            // Ledger DepCoin balances are authoritative; sync EVM wei for CALL but apply
+            // native value transfer on WorldState (Besu SimpleWorld balance != our ledger).
+            if (tx.getValue() > 0) {
+                WorldState.AccountState fromAcc = state.get(tx.getFrom());
+                WorldState.AccountState toAcc = state.getOrCreate(tx.getTo());
+                fromAcc.setBalance(fromAcc.getBalance() - tx.getValue());
+                toAcc.setBalance(toAcc.getBalance() + tx.getValue());
+            }
+            return new TransactionExecutionResult(
+                true,
+                true,
+                CONTRACT_CALL_GAS_USED,
+                pre.feeCharged,
+                null
+            );
+        } catch (RuntimeException ex) {
+            return new TransactionExecutionResult(
+                false,
+                false,
+                CONTRACT_CALL_GAS_USED,
+                pre.feeCharged,
+                "evm call failed: " + ex.getMessage()
+            );
+        }
+    }
+
+    private void syncAccountToEvm(WorldState state, String address) {
+        WorldState.AccountState acc = state.get(address);
+        if (acc == null) {
+            return;
+        }
+        evm.upsertAccount(address, acc.getNonce(), acc.getBalance());
     }
 
     private TransactionExecutionResult executeNativeTransfer(

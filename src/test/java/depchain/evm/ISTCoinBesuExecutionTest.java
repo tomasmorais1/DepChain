@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
+import org.apache.tuweni.crypto.Hash;
 import org.apache.tuweni.units.bigints.UInt256;
 import org.hyperledger.besu.datatypes.Address;
 import org.hyperledger.besu.datatypes.Wei;
@@ -15,8 +17,6 @@ import org.hyperledger.besu.evm.account.MutableAccount;
 import org.hyperledger.besu.evm.fluent.EVMExecutor;
 import org.hyperledger.besu.evm.fluent.SimpleWorld;
 import org.junit.jupiter.api.Test;
-import org.web3j.crypto.Hash;
-import org.web3j.utils.Numeric;
 
 class ISTCoinBesuExecutionTest {
 
@@ -85,19 +85,15 @@ class ISTCoinBesuExecutionTest {
         Address owner,
         Address spender
     ) {
-        String outerKey = Numeric.toHexStringNoPrefix(
-            Hash.sha3(
-                Numeric.hexStringToByteArray(encodeAddress(owner) + encodeUint(1))
-            )
+        Bytes32 outer = Hash.keccak256(
+            Bytes.fromHexString(encodeAddress(owner) + encodeUint(1))
         );
-        String finalSlot = Numeric.toHexStringNoPrefix(
-            Hash.sha3(
-                Numeric.hexStringToByteArray(encodeAddress(spender) + outerKey)
-            )
+        Bytes32 finalSlot = Hash.keccak256(
+            Bytes.concatenate(Bytes.fromHexString(encodeAddress(spender)), outer)
         );
         BigInteger value = world
             .get(contract)
-            .getStorageValue(UInt256.fromHexString(finalSlot))
+            .getStorageValue(UInt256.fromHexString(finalSlot.toHexString()))
             .toBigInteger();
         return value.intValueExact();
     }

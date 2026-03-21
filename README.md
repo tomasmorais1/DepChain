@@ -1,6 +1,6 @@
 # DepChain — Stage 1
 
-**Requirements:** Java 11+, Maven 3.6+
+**Requirements:** **Java 21** (Besu EVM / bytecode), Maven 3.6+
 
 ---
 

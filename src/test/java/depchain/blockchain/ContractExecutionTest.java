@@ -22,7 +22,7 @@ class ContractExecutionTest {
             0,
             2,
             200_000,
-            new byte[] { 0x60, 0x00, 0x60, 0x00 }
+            new byte[] { 0x00 }
         );
 
         TransactionExecutionResult result = executor.execute(state, deploy);
@@ -50,7 +50,7 @@ class ContractExecutionTest {
             0,
             1,
             200_000,
-            new byte[] { 0x01, 0x02 }
+            new byte[] { 0x00 }
         );
         TransactionExecutionResult deployResult = executor.execute(state, deploy);
         String contractAddress = deployResult.getCreatedContractAddress();

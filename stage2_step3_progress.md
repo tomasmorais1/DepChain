@@ -4,6 +4,11 @@
 
 In progress.
 
+### Build / toolchain
+
+- **JDK 21** required (`maven.compiler.release` 21). Besu EVM 25.x aligns with Lab2 and avoids Java 17 vs bytecode mismatches.
+- Dependencies: `evm` **25.6.0**, `besu-datatypes` **25.2.1** (see root `pom.xml`).
+
 ## Step 3.1 - Data model (started)
 
 Implemented in this iteration:
@@ -132,43 +137,9 @@ What is covered now:
   - validate contract existence in registry
   - support value transfer to contract account
 
-Current limitation kept explicit:
+Execution model (Besu + ledger):
 
-- Full EVM bytecode execution (Besu world + storage writes/reads) is not yet wired in this executor path.
-- The current implementation is an intermediate execution scaffold to unblock Step 3 pipeline integration.
+- Deploy/call use `BesuEvmHelper` (Besu `SimpleWorld` + `EVMExecutor`). Runtime bytecode is registered in `ContractRuntimeRegistry`.
+- **Native DepCoin** balances in `WorldState` are authoritative. After a successful contract **call**, `msg.value` is reflected by moving DepCoin from sender to contract in `WorldState` (the EVM world is used for opcode execution; ledger balances are updated explicitly for consistency).
 
-Nota importante (transparente)
-Isto é uma camada intermédia para fechar o pipeline Step 3 sem bloquear: ainda não estamos a executar bytecode EVM “real” dentro do TransactionExecutor (com world/storage da EVM).
-Se quiseres, o próximo passo é exatamente esse: ligar execução real com Besu para deploy/call (aí sim mais próximo do que o report do ano passado descreve).
-
-Plano Step 3 (curto e seguro)
-Modelo de dados
-
-Criar Transaction (from, to, nonce, value, data, gasPrice, gasLimit, signature se já quiseres)
-Estender/ajustar Block para incluir lista de transações + world state snapshot/hash
-Definir ordenação por fee (gasPrice desc)
-Genesis
-
-Definir genesis.json em src/main/resources
-Incluir contas iniciais (balance + nonce)
-Incluir deploy tx do ISTCoin (bytecode que já tens)
-Criar loader de genesis para inicializar estado
-Execução de transações + gas
-
-Implementar executor (native transfer + contract call)
-Aplicar regra de fee do enunciado
-Deduzir fee em DepCoin ao sender
-Rejeitar/abortar se ultrapassar gasLimit (sem refund do gas usado)
-Append + persistência
-
-Função para construir novo bloco a partir de tx pool
-Executar txs em ordem de fee
-Atualizar estado e persistir bloco em JSON (mesmo formato lógico do genesis)
-Testes Step 3
-
-Genesis load ok
-Transferência nativa
-Chamada ao ISTCoin
-Ordenação por fee
-Caso de gasLimit insuficiente
-Persistência e reload de blocos
+Next steps (outside this doc): deeper consensus integration (`Block` with txs), richer gas accounting, persistence polish.
