@@ -31,6 +31,10 @@ public final class BlockchainLedger {
         this.nextHeight = 1L;
     }
 
+    /**
+     * Orders txs by {@link Transaction#maxFeeOffer()} descending, then {@link Transaction#getNonce()}
+     * ascending (deterministic tie-break).
+     */
     public LedgerBlock appendBlock(List<Transaction> pendingTransactions) {
         List<Transaction> ordered = new ArrayList<>(pendingTransactions);
         ordered.sort(Transaction.FEE_PRIORITY.thenComparingLong(Transaction::getNonce));
@@ -49,7 +53,8 @@ public final class BlockchainLedger {
             nextHeight,
             timestamp,
             executed,
-            worldState.snapshot()
+            worldState.snapshot(),
+            executor.getContractRegistry().snapshotRuntimeHex()
         );
         chain.add(block);
         lastBlockHash = blockHash;

@@ -30,11 +30,11 @@ class TransactionExecutorTest {
         assertTrue(result.isStateApplied());
         assertEquals(42_000, result.getFeeCharged());
         assertEquals(
-            1_000_000 - 42_000 - 100,
+            10_000_000 - 42_000 - 100,
             state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
         );
         assertEquals(
-            1_000_000 + 100,
+            10_000_000 + 100,
             state.get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").getBalance()
         );
         assertEquals(
@@ -66,11 +66,11 @@ class TransactionExecutorTest {
         assertEquals("out of gas", result.getError());
         assertEquals(30_000, result.getFeeCharged());
         assertEquals(
-            1_000_000 - 30_000,
+            10_000_000 - 30_000,
             state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
         );
         assertEquals(
-            1_000_000,
+            10_000_000,
             state.get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").getBalance()
         );
         assertEquals(
@@ -100,7 +100,7 @@ class TransactionExecutorTest {
         assertFalse(result.isSuccess());
         assertEquals("invalid nonce", result.getError());
         assertEquals(
-            1_000_000,
+            10_000_000,
             state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
         );
         assertEquals(

@@ -9,6 +9,7 @@ depchain/blockchain/WorldState$AccountSnapshot.class
 depchain/blockchain/WorldState$AccountState.class
 depchain/transport/FairLossLink.class
 depchain/consensus/ConsensusMessage.class
+depchain/blockchain/evm/GasCaptureTracer.class
 depchain/client/DepChainClient$ResponseAccumulator.class
 depchain/consensus/ConsensusNetwork$ReceivedMessage.class
 depchain/links/AuthenticatedPerfectLink$DeliveredMessage.class
@@ -22,11 +23,11 @@ threshsig/ThresholdSigException.class
 depchain/blockchain/TransactionExecutor.class
 depchain/links/AuthenticatedPerfectLink.class
 depchain/blockchain/WorldState.class
-depchain/blockchain/TransactionExecutor$PreChargeResult.class
 threshsig/Poly.class
 depchain/blockchain/BlockchainLedger.class
 depchain/client/ClientProtocol.class
 depchain/consensus/Phase.class
+depchain/blockchain/evm/IstCoinBytecode.class
 depchain/consensus/HotStuffReplica$EncodePhaseMessage.class
 depchain/blockchain/LedgerBlock.class
 depchain/config/Membership.class
@@ -42,6 +43,7 @@ depchain/consensus/HotStuffReplica.class
 depchain/blockchain/ContractRuntimeRegistry.class
 threshsig/ThreshSigWire.class
 depchain/blockchain/BlockJsonStore.class
+depchain/blockchain/evm/EvmCallResult.class
 depchain/demo/Demo.class
 depchain/blockchain/Transaction.class
 depchain/blockchain/Genesis.class
@@ -53,6 +55,7 @@ threshsig/Verifier.class
 threshsig/GroupKey.class
 threshsig/ThreshUtil.class
 depchain/consensus/HotStuffReplica$DecideCallback.class
+depchain/blockchain/evm/BesuEvmHelper.class
 depchain/consensus/Block.class
 depchain/blockchain/GenesisLoader.class
 depchain/blockchain/TransactionExecutionResult.class

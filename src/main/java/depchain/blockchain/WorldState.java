@@ -6,7 +6,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Minimal account state for Step 3 execution.
+ * Minimal account state for Step 3 execution (DepCoin balance + nonce only).
+ *
+ * <p>Deployed contract runtime bytecode is persisted per block in {@link LedgerBlock#getContractRuntimeHex()},
+ * not inside {@link AccountSnapshot}.
  */
 public final class WorldState {
     private final Map<String, AccountState> accounts = new ConcurrentHashMap<>();

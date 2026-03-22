@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: depchain.demo.MultiProcessConfigIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.337 s -- in depchain.demo.MultiProcessConfigIntegrationTest
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.204 s -- in depchain.demo.MultiProcessConfigIntegrationTest

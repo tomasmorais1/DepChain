@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress.
+**Em grande parte fechado** (genesis IST, fee ordering, gas medido Besu — ver `STAGE2-PLANO-STEP3-vs-STEP4.md`). Pendências típicas: persistência de código de contrato / integração consenso (Step 4).
 
 ### Build / toolchain
 
@@ -114,8 +114,8 @@ What is covered now:
 
 Current limitations:
 
-- Contract call/deployment execution is still pending.
 - Integration with consensus decision path is still pending (planned for Step 4).
+- Optional: persistir código de contrato no estado serializado (ver plano Step 3 vs 4).
 
 ## Step 3.5 - Contract deployment/call (intermediate slice)
 
@@ -142,4 +142,13 @@ Execution model (Besu + ledger):
 - Deploy/call use `BesuEvmHelper` (Besu `SimpleWorld` + `EVMExecutor`). Runtime bytecode is registered in `ContractRuntimeRegistry`.
 - **Native DepCoin** balances in `WorldState` are authoritative. After a successful contract **call**, `msg.value` is reflected by moving DepCoin from sender to contract in `WorldState` (the EVM world is used for opcode execution; ledger balances are updated explicitly for consistency).
 
-Next steps (outside this doc): deeper consensus integration (`Block` with txs), richer gas accounting, persistence polish.
+Next steps (outside this doc): deeper consensus integration (`Block` with txs), persistence polish.
+
+### Gas (Besu)
+
+- Transferências nativas: `gas_used` = 21 000 (intrínseco).
+- Deploy/chamadas: gas **medido** via `GasCaptureTracer` + `BesuEvmHelper.callMetered` / `measureContractCreationGas`; fee com `min(gas_price × gas_limit, gas_price × gas_used)`.
+
+### Persistência (Step 3)
+
+- `LedgerBlock` + JSON: inclui `contractRuntimeHex` (registry de bytecode por endereço). Restauro: `ContractRuntimeRegistry.applyRuntimeHexSnapshot` + `BesuEvmHelper.applyCodesFromRegistry`. Storage EVM completo não está em disco (replay ou Step 4).

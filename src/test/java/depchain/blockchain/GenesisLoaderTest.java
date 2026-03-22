@@ -3,7 +3,9 @@ package depchain.blockchain;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import depchain.blockchain.evm.IstCoinBytecode;
 import org.junit.jupiter.api.Test;
 
 class GenesisLoaderTest {
@@ -19,7 +21,7 @@ class GenesisLoaderTest {
 
         Genesis.GenesisAccount first = genesis.getAccounts().get(0);
         assertEquals("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", first.getAddress());
-        assertEquals(1000000, first.getBalance());
+        assertEquals(10_000_000, first.getBalance());
         assertEquals(0, first.getNonce());
 
         Transaction deployTx = genesis.getTransactions().get(0);
@@ -28,6 +30,7 @@ class GenesisLoaderTest {
         assertEquals(0, deployTx.getValue());
         assertEquals(1, deployTx.getGasPrice());
         assertEquals(5000000, deployTx.getGasLimit());
-        assertArrayEquals(new byte[] { 0x60, 0x00, 0x60, 0x00 }, deployTx.getData());
+        assertArrayEquals(IstCoinBytecode.readCreationBytecode(), deployTx.getData());
+        assertTrue(deployTx.getData().length > 1000, "IST creation bytecode should be large");
     }
 }

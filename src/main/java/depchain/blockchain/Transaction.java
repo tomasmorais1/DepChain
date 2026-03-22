@@ -19,11 +19,28 @@ public final class Transaction implements Serializable {
     private final byte[] data;
 
     /**
-     * Order transactions by higher fee priority first.
-     * Step 3 currently uses gasPrice as the ordering metric.
+     * Block ordering before execution: higher {@linkplain #maxFeeOffer() max fee offer} first.
+     * <p>
+     * The enunciado charges {@code min(gas_price * gas_limit, gas_price * gas_used)}; before
+     * execution {@code gas_used} is unknown, so we use {@code gas_price * gas_limit} as the
+     * user-declared upper bound on native DepCoin fee — a standard proxy for “willingness to pay”.
+     * Tie-break: {@link #getNonce()} (applied in {@code BlockchainLedger.appendBlock}).
      */
     public static final Comparator<Transaction> FEE_PRIORITY =
-        Comparator.comparingLong(Transaction::getGasPrice).reversed();
+        Comparator.comparingLong(Transaction::maxFeeOffer).reversed();
+
+    /**
+     * Upper bound on fee in DepCoin smallest units: {@code gasPrice * gasLimit}.
+     * Matches the maximum of {@code gas_price * gas_limit} in the fee formula before {@code gas_used} is known.
+     * On overflow, returns {@link Long#MAX_VALUE} so the transaction sorts first (extreme bids).
+     */
+    public long maxFeeOffer() {
+        try {
+            return Math.multiplyExact(gasPrice, gasLimit);
+        } catch (ArithmeticException e) {
+            return Long.MAX_VALUE;
+        }
+    }
 
     public Transaction(
         String from,

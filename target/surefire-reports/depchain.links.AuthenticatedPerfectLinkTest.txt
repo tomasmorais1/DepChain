@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: depchain.links.AuthenticatedPerfectLinkTest
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.434 s -- in depchain.links.AuthenticatedPerfectLinkTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.560 s -- in depchain.links.AuthenticatedPerfectLinkTest

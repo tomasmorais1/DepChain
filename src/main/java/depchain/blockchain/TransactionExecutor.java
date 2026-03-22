@@ -1,19 +1,28 @@
 package depchain.blockchain;
 
 import depchain.blockchain.evm.BesuEvmHelper;
+import depchain.blockchain.evm.EvmCallResult;
+import depchain.blockchain.evm.IstCoinBytecode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import org.apache.tuweni.bytes.Bytes;
 
 /**
  * Step 3 transaction executor: native transfers, fees, and Besu EVM for contracts.
+ *
+ * <p>Native transfers use Ethereum intrinsic gas 21,000 (no EVM opcode execution). Contract
+ * calls and deploy fee {@code gas_used} values come from Besu {@link org.hyperledger.besu.evm.fluent.EVMExecutor}
+ * via {@link depchain.blockchain.evm.GasCaptureTracer}.
  */
 public final class TransactionExecutor {
-    /** Simplified fixed gas for native transfer. */
-    public static final long NATIVE_TRANSFER_GAS_USED = 21_000L;
-    public static final long CONTRACT_DEPLOY_GAS_USED = 120_000L;
-    public static final long CONTRACT_CALL_GAS_USED = 45_000L;
+    /**
+     * Intrinsic gas for a simple native value transfer (no contract code execution), same order of
+     * magnitude as Ethereum.
+     */
+    public static final long NATIVE_TRANSFER_INTRINSIC_GAS = 21_000L;
+
+    /** Early failure paths that do not enter the EVM (e.g. unknown contract). */
+    private static final long INTRINSIC_FAILED_CALL_GAS = 21_000L;
 
     private final ContractRuntimeRegistry contractRegistry;
     private final BesuEvmHelper evm;
@@ -53,87 +62,128 @@ public final class TransactionExecutor {
         WorldState state,
         Transaction tx
     ) {
-        PreChargeResult pre = preCharge(state, tx, CONTRACT_DEPLOY_GAS_USED);
-        if (!pre.proceed) {
-            return pre.result;
+        WorldState.AccountState sender = state.get(tx.getFrom());
+        if (sender == null) {
+            return new TransactionExecutionResult(false, false, 0, 0, "sender does not exist");
+        }
+        if (sender.getNonce() != tx.getNonce()) {
+            return new TransactionExecutionResult(false, false, 0, 0, "invalid nonce");
         }
         if (tx.getData().length == 0) {
-            return new TransactionExecutionResult(
-                false,
-                false,
-                CONTRACT_DEPLOY_GAS_USED,
-                pre.feeCharged,
-                "empty deployment bytecode"
-            );
+            return new TransactionExecutionResult(false, false, 0, 0, "empty deployment bytecode");
         }
+        long maxFee = mulOrMax(tx.getGasPrice(), tx.getGasLimit());
+        if (sender.getBalance() < tx.getValue() + maxFee) {
+            return new TransactionExecutionResult(false, false, 0, 0, "insufficient balance for fee");
+        }
+
+        long gasUsed =
+            BesuEvmHelper.measureContractCreationGas(
+                tx.getData(),
+                tx.getFrom(),
+                tx.getNonce(),
+                tx.getGasLimit()
+            );
+        long gasUsedForFee = Math.min(gasUsed, tx.getGasLimit());
         String contractAddress = deriveContractAddress(tx.getFrom(), tx.getNonce());
+
+        long feeCharged = computeFeeCharged(tx, gasUsedForFee);
+
+        sender.setBalance(sender.getBalance() - feeCharged);
+        sender.setNonce(sender.getNonce() + 1);
         syncAccountToEvm(state, tx.getFrom());
-        evm.setContractCode(contractAddress, tx.getData());
-        contractRegistry.put(contractAddress, tx.getData());
-        state.getOrCreate(contractAddress);
-        evm.upsertAccount(contractAddress, 0, 0);
+        byte[] runtimeBytecode;
+        if (IstCoinBytecode.isKnownCreationBytecode(tx.getData())) {
+            runtimeBytecode = IstCoinBytecode.readRuntimeBytecode();
+            evm.setContractCode(contractAddress, runtimeBytecode);
+            contractRegistry.put(contractAddress, runtimeBytecode);
+            state.getOrCreate(contractAddress);
+            evm.upsertAccount(contractAddress, 0, 0);
+            evm.seedIstCoinBalancesAfterDeploy(tx.getFrom(), contractAddress);
+        } else {
+            runtimeBytecode = tx.getData();
+            evm.setContractCode(contractAddress, runtimeBytecode);
+            contractRegistry.put(contractAddress, runtimeBytecode);
+            state.getOrCreate(contractAddress);
+            evm.upsertAccount(contractAddress, 0, 0);
+        }
         return new TransactionExecutionResult(
             true,
             true,
-            CONTRACT_DEPLOY_GAS_USED,
-            pre.feeCharged,
+            gasUsedForFee,
+            feeCharged,
             null,
             contractAddress
         );
     }
 
     private TransactionExecutionResult executeContractCall(WorldState state, Transaction tx) {
-        PreChargeResult pre = preCharge(state, tx, CONTRACT_CALL_GAS_USED);
-        if (!pre.proceed) {
-            return pre.result;
+        WorldState.AccountState sender = state.get(tx.getFrom());
+        if (sender == null) {
+            return new TransactionExecutionResult(false, false, 0, 0, "sender does not exist");
         }
+        if (sender.getNonce() != tx.getNonce()) {
+            return new TransactionExecutionResult(false, false, 0, 0, "invalid nonce");
+        }
+        long maxFee = mulOrMax(tx.getGasPrice(), tx.getGasLimit());
+        if (sender.getBalance() < tx.getValue() + maxFee) {
+            return new TransactionExecutionResult(false, false, 0, 0, "insufficient balance for fee");
+        }
+
         if (!contractRegistry.contains(tx.getTo())) {
-            return new TransactionExecutionResult(
-                false,
-                false,
-                CONTRACT_CALL_GAS_USED,
-                pre.feeCharged,
+            return failWithChargedGas(
+                state,
+                tx,
+                INTRINSIC_FAILED_CALL_GAS,
                 "unknown contract address"
             );
         }
-        WorldState.AccountState sender = state.get(tx.getFrom());
         if (sender.getBalance() < tx.getValue()) {
-            return new TransactionExecutionResult(
-                false,
-                false,
-                CONTRACT_CALL_GAS_USED,
-                pre.feeCharged,
-                "insufficient balance for call value"
-            );
+            return new TransactionExecutionResult(false, false, 0, 0, "insufficient balance for call value");
         }
+
         syncAccountToEvm(state, tx.getFrom());
         syncAccountToEvm(state, tx.getTo());
+        long gasUsed;
         try {
-            evm.call(tx.getFrom(), tx.getTo(), tx.getData());
-            // Ledger DepCoin balances are authoritative; sync EVM wei for CALL but apply
-            // native value transfer on WorldState (Besu SimpleWorld balance != our ledger).
+            EvmCallResult r = evm.callMetered(tx.getFrom(), tx.getTo(), tx.getData(), tx.getGasLimit());
+            gasUsed = Math.min(r.gasUsed(), tx.getGasLimit());
+            long feeCharged = computeFeeCharged(tx, gasUsed);
+            sender.setBalance(sender.getBalance() - feeCharged);
+            sender.setNonce(sender.getNonce() + 1);
             if (tx.getValue() > 0) {
                 WorldState.AccountState fromAcc = state.get(tx.getFrom());
                 WorldState.AccountState toAcc = state.getOrCreate(tx.getTo());
                 fromAcc.setBalance(fromAcc.getBalance() - tx.getValue());
                 toAcc.setBalance(toAcc.getBalance() + tx.getValue());
             }
-            return new TransactionExecutionResult(
-                true,
-                true,
-                CONTRACT_CALL_GAS_USED,
-                pre.feeCharged,
-                null
-            );
+            return new TransactionExecutionResult(true, true, gasUsed, feeCharged, null);
         } catch (RuntimeException ex) {
+            gasUsed = tx.getGasLimit();
+            long feeCharged = computeFeeCharged(tx, gasUsed);
+            sender.setBalance(sender.getBalance() - feeCharged);
+            sender.setNonce(sender.getNonce() + 1);
             return new TransactionExecutionResult(
                 false,
                 false,
-                CONTRACT_CALL_GAS_USED,
-                pre.feeCharged,
+                gasUsed,
+                feeCharged,
                 "evm call failed: " + ex.getMessage()
             );
         }
+    }
+
+    private TransactionExecutionResult failWithChargedGas(
+        WorldState state,
+        Transaction tx,
+        long gasUsed,
+        String error
+    ) {
+        WorldState.AccountState sender = state.get(tx.getFrom());
+        long feeCharged = computeFeeCharged(tx, gasUsed);
+        sender.setBalance(sender.getBalance() - feeCharged);
+        sender.setNonce(sender.getNonce() + 1);
+        return new TransactionExecutionResult(false, false, gasUsed, feeCharged, error);
     }
 
     private void syncAccountToEvm(WorldState state, String address) {
@@ -168,10 +218,8 @@ public final class TransactionExecutor {
             );
         }
 
-        long gasUsed = NATIVE_TRANSFER_GAS_USED;
-        long feeByLimit = tx.getGasPrice() * tx.getGasLimit();
-        long feeByUsed = tx.getGasPrice() * gasUsed;
-        long feeCharged = Math.min(feeByLimit, feeByUsed);
+        long gasUsed = NATIVE_TRANSFER_INTRINSIC_GAS;
+        long feeCharged = computeFeeCharged(tx, gasUsed);
 
         if (sender.getBalance() < feeCharged) {
             return new TransactionExecutionResult(
@@ -213,66 +261,19 @@ public final class TransactionExecutor {
         return new TransactionExecutionResult(true, true, gasUsed, feeCharged, null);
     }
 
-    private PreChargeResult preCharge(WorldState state, Transaction tx, long gasUsed) {
-        WorldState.AccountState sender = state.get(tx.getFrom());
-        if (sender == null) {
-            return PreChargeResult.stop(
-                new TransactionExecutionResult(
-                    false,
-                    false,
-                    0,
-                    0,
-                    "sender does not exist"
-                ),
-                0
-            );
-        }
-        if (sender.getNonce() != tx.getNonce()) {
-            return PreChargeResult.stop(
-                new TransactionExecutionResult(
-                    false,
-                    false,
-                    0,
-                    0,
-                    "invalid nonce"
-                ),
-                0
-            );
-        }
+    /** fee = min(gas_price * gas_limit, gas_price * gas_used), with overflow guard. */
+    private static long computeFeeCharged(Transaction tx, long gasUsed) {
+        long cap = mulOrMax(tx.getGasPrice(), tx.getGasLimit());
+        long atUsed = mulOrMax(tx.getGasPrice(), gasUsed);
+        return Math.min(cap, atUsed);
+    }
 
-        long feeByLimit = tx.getGasPrice() * tx.getGasLimit();
-        long feeByUsed = tx.getGasPrice() * gasUsed;
-        long feeCharged = Math.min(feeByLimit, feeByUsed);
-
-        if (sender.getBalance() < feeCharged) {
-            return PreChargeResult.stop(
-                new TransactionExecutionResult(
-                    false,
-                    false,
-                    gasUsed,
-                    0,
-                    "insufficient balance for fee"
-                ),
-                0
-            );
+    private static long mulOrMax(long a, long b) {
+        try {
+            return Math.multiplyExact(a, b);
+        } catch (ArithmeticException e) {
+            return Long.MAX_VALUE;
         }
-
-        sender.setBalance(sender.getBalance() - feeCharged);
-        sender.setNonce(sender.getNonce() + 1);
-
-        if (gasUsed > tx.getGasLimit()) {
-            return PreChargeResult.stop(
-                new TransactionExecutionResult(
-                    false,
-                    false,
-                    gasUsed,
-                    feeCharged,
-                    "out of gas"
-                ),
-                feeCharged
-            );
-        }
-        return PreChargeResult.continueExecution(feeCharged);
     }
 
     private static String deriveContractAddress(String from, long nonce) {
@@ -288,33 +289,6 @@ public final class TransactionExecutor {
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 unavailable", e);
-        }
-    }
-
-    private static final class PreChargeResult {
-        private final boolean proceed;
-        private final long feeCharged;
-        private final TransactionExecutionResult result;
-
-        private PreChargeResult(
-            boolean proceed,
-            long feeCharged,
-            TransactionExecutionResult result
-        ) {
-            this.proceed = proceed;
-            this.feeCharged = feeCharged;
-            this.result = result;
-        }
-
-        private static PreChargeResult continueExecution(long feeCharged) {
-            return new PreChargeResult(true, feeCharged, null);
-        }
-
-        private static PreChargeResult stop(
-            TransactionExecutionResult result,
-            long feeCharged
-        ) {
-            return new PreChargeResult(false, feeCharged, result);
         }
     }
 }
