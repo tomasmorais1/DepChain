@@ -1,5 +1,7 @@
 package depchain.client;
 
+import depchain.blockchain.Transaction;
+import depchain.blockchain.TransactionCommandCodec;
 import depchain.config.NodeAddress;
 
 import java.io.IOException;
@@ -129,6 +131,14 @@ public final class DepChainClient implements AutoCloseable {
         } finally {
             pending.remove(requestId);
         }
+    }
+
+    /** Submit a full Stage 2 transaction encoded as command payload. */
+    public int appendTransaction(Transaction tx) throws InterruptedException {
+        if (tx == null) {
+            return -1;
+        }
+        return append(TransactionCommandCodec.encode(tx));
     }
 
     /** Accumulates responses until requiredResponses (f+1) identical (same success, index) are received. */

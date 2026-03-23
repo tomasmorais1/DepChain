@@ -1,5 +1,6 @@
 package depchain.demo;
 
+import depchain.blockchain.Transaction;
 import depchain.blockchain.BlockchainMember;
 import depchain.client.DepChainClient;
 import depchain.config.NodeAddress;
@@ -45,9 +46,19 @@ class MultiProcessConfigIntegrationTest {
         DepChainClient client = new DepChainClient(targets, clientListen, 15000L, 5);
 
         try {
-            int idx = client.append("keyfile-test");
+            Transaction tx = new Transaction(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                0,
+                7,
+                1,
+                21_000,
+                null
+            );
+            int idx = client.appendTransaction(tx);
             assertTrue(idx >= 0, "append should succeed with key file; got " + idx);
-            assertEquals("keyfile-test", members.get(0).getBlockchain().getLog().get(idx));
+            assertTrue(members.get(0).getLedger().getBlocks().size() >= 1);
+            assertEquals(1, members.get(0).getLedger().getBlocks().get(0).getTransactions().size());
         } finally {
             client.close();
             for (BlockchainMember m : members) m.close();

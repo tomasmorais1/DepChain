@@ -38,7 +38,17 @@ public final class BlockchainLedger {
     public LedgerBlock appendBlock(List<Transaction> pendingTransactions) {
         List<Transaction> ordered = new ArrayList<>(pendingTransactions);
         ordered.sort(Transaction.FEE_PRIORITY.thenComparingLong(Transaction::getNonce));
+        return appendTransactionsInOrder(ordered);
+    }
 
+    /**
+     * Appends transactions in the exact order already decided by consensus.
+     */
+    public LedgerBlock appendDecidedBlock(List<Transaction> decidedOrder) {
+        return appendTransactionsInOrder(new ArrayList<>(decidedOrder));
+    }
+
+    private LedgerBlock appendTransactionsInOrder(List<Transaction> ordered) {
         List<ExecutedTransaction> executed = new ArrayList<>();
         for (Transaction tx : ordered) {
             TransactionExecutionResult result = executor.execute(worldState, tx);

@@ -1,0 +1,37 @@
+{
+  "blockHash": "58672b25b04730f749bc84341df85e66d5cd44f670e4c8d53801481ae776a560",
+  "previousBlockHash": "c95b638c4f512ba065aca49a691fc1861b958cf34e9e4fe8081dc73ac9982442",
+  "height": 2,
+  "timestamp": 1774302799816,
+  "transactions": [
+    {
+      "transaction": {
+        "from": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "nonce": 0,
+        "value": 25,
+        "gasPrice": 1,
+        "gasLimit": 21000,
+        "data": []
+      },
+      "result": {
+        "success": false,
+        "stateApplied": false,
+        "gasUsed": 0,
+        "feeCharged": 0,
+        "error": "invalid nonce"
+      }
+    }
+  ],
+  "state": {
+    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+      "balance": 9978975,
+      "nonce": 1
+    },
+    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
+      "balance": 10000025,
+      "nonce": 0
+    }
+  },
+  "contractRuntimeHex": {}
+}

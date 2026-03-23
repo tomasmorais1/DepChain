@@ -1,5 +1,6 @@
 package depchain.client;
 
+import depchain.blockchain.Transaction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import depchain.blockchain.BlockchainMember;
@@ -68,17 +69,29 @@ class ClientIntegrationTest {
         DepChainClient client = new DepChainClient(clientTargets, clientListenPort, 8000L, 5);
 
         try {
-            int idx = client.append("hello-from-client");
+            Transaction tx = new Transaction(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                0,
+                25,
+                1,
+                21_000,
+                null
+            );
+            int idx = client.appendTransaction(tx);
             assertTrue(idx >= 0, "append should succeed");
 
             for (int t = 0; t < 50; t++) {
-                int size = members.get(0).getBlockchain().size();
+                int size = members.get(0).getLedger().getBlocks().size();
                 if (size >= 1)
                     break;
                 Thread.sleep(100);
             }
-            assertEquals(1, members.get(0).getBlockchain().size());
-            assertEquals("hello-from-client", members.get(0).getBlockchain().getLog().get(0));
+            assertEquals(1, members.get(0).getLedger().getBlocks().size());
+            assertEquals(
+                1,
+                members.get(0).getLedger().getBlocks().get(0).getTransactions().size()
+            );
         } finally {
             client.close();
             for (BlockchainMember m : members)

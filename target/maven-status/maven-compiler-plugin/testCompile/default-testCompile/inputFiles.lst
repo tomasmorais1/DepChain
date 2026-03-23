@@ -16,6 +16,7 @@
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ByzantineTest.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/ReplayConsensusNetwork.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/blockchain/GenesisIstDeployTest.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/blockchain/TxBatchPayloadTest.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/blockchain/GenesisLoaderTest.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/evm/ISTCoinBesuExecutionTest.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/test/java/depchain/consensus/VoteDroppingConsensusNetwork.java

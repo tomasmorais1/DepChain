@@ -1,8 +1,8 @@
 package depchain;
 
 import depchain.blockchain.BlockchainMember;
+import depchain.blockchain.Transaction;
 import depchain.client.DepChainClient;
-import depchain.config.Membership;
 import depchain.config.NodeAddress;
 import depchain.demo.MultiProcessConfig;
 
@@ -75,12 +75,20 @@ public class Main {
         Thread.sleep(4000);
         InetSocketAddress bindAddr = new InetSocketAddress("127.0.0.1", MultiProcessConfig.CLIENT_LISTEN);
         DepChainClient client = new DepChainClient(targets, MultiProcessConfig.CLIENT_LISTEN, bindAddr, 15000L, 5);
-        System.out.println("Appending 3 strings to members at " + targets + " ...");
+        System.out.println("Submitting 3 transactions to members at " + targets + " ...");
         boolean anyFail = false;
         for (int k = 0; k < 3; k++) {
-            String s = "multi-jvm-" + (k + 1);
-            int idx = client.append(s);
-            System.out.println("  append(\"" + s + "\") -> index " + idx);
+            Transaction tx = new Transaction(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                k,
+                10,
+                1,
+                21_000,
+                null
+            );
+            int idx = client.appendTransaction(tx);
+            System.out.println("  append(tx nonce=" + k + ") -> index " + idx);
             if (idx < 0) anyFail = true;
         }
         client.close();

@@ -8,6 +8,7 @@ depchain/blockchain/GenesisLoaderTest.class
 depchain/consensus/ByzantineTest.class
 depchain/consensus/VoteDroppingConsensusNetwork.class
 depchain/blockchain/ContractExecutionTest.class
+depchain/blockchain/ContractRuntimeRegistryTest.class
 depchain/consensus/DropConsensusNetwork.class
 depchain/consensus/IntrusiveNetworkTest.class
 depchain/blockchain/TransactionExecutorTest.class
@@ -19,3 +20,4 @@ depchain/blockchain/BlockchainLedgerTest.class
 depchain/consensus/SilentConsensusNetwork.class
 depchain/consensus/ConsensusTestHarness.class
 depchain/consensus/ReplicaFailingTest.class
+depchain/blockchain/TxBatchPayloadTest.class

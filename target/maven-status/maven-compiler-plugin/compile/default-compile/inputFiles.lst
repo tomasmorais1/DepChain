@@ -4,6 +4,7 @@
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/HotStuffReplica.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/evm/BesuEvmHelper.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/LedgerBlock.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/TxBatchPayload.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/BlockJsonStore.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/ThresholdSigException.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/KeyShare.java
@@ -35,6 +36,7 @@
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/links/APLMessage.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/GroupKey.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/BlockchainLedger.java
+/Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/TransactionCommandCodec.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/consensus/Block.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/threshsig/ThreshUtil.java
 /Users/guilhermeribeiro/Desktop/Mestrado/semestre 2 - ano 1/SEC/Projeto/DepChain/src/main/java/depchain/blockchain/GenesisLoader.java
