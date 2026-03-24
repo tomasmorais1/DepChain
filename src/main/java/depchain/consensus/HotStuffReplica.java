@@ -48,6 +48,9 @@ public class HotStuffReplica implements AutoCloseable {
     private final Map<Long, Set<Integer>> newViewSendersByView = new HashMap<>();
     /** Last view for which we sent NEW_VIEW (replicas send NEW_VIEW once per view to leader). */
     private long lastViewForWhichWeSentNewView = -1;
+    private long lastNewViewWireSendTimeMs = 0L;
+    /** Resend NEW_VIEW while in the same view (UDP can drop; leader needs n-f distinct senders). */
+    private static final long NEW_VIEW_RESEND_MS = 250L;
     private final BlockingQueue<Block> pendingProposals = new LinkedBlockingQueue<>();
     private final Thread processThread;
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -109,7 +112,9 @@ public class HotStuffReplica implements AutoCloseable {
                 }
                 if (isLeader()) tryProposePending();
                 sendNewViewIfNeeded();
-                if (System.currentTimeMillis() - lastProgressTimeMs > viewTimeoutMs) onViewTimeout();
+                if (System.currentTimeMillis() - lastProgressTimeMs > viewTimeoutMs) {
+                    onViewTimeout();
+                }
                 if (msg == null) Thread.sleep(5);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -126,15 +131,20 @@ public class HotStuffReplica implements AutoCloseable {
         lastProgressTimeMs = System.currentTimeMillis();
     }
 
-    /** Non-leaders send NEW_VIEW to the leader once per view so the leader can wait for n-f before PREPARE. */
+    /** Non-leaders send NEW_VIEW to the leader so the leader can wait for n-f before PREPARE. */
     private void sendNewViewIfNeeded() {
         if (isLeader()) return;
         long v = view.get();
-        if (v <= lastViewForWhichWeSentNewView) return;
+        long now = System.currentTimeMillis();
+        boolean firstInView = v > lastViewForWhichWeSentNewView;
+        boolean resendSameView =
+            v == lastViewForWhichWeSentNewView && now - lastNewViewWireSendTimeMs >= NEW_VIEW_RESEND_MS;
+        if (!firstInView && !resendSameView) return;
         try {
             byte[] wire = ConsensusMessage.encodeNewView(v);
             network.sendTo(membership.getLeaderId(v), wire);
             lastViewForWhichWeSentNewView = v;
+            lastNewViewWireSendTimeMs = now;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -143,8 +153,8 @@ public class HotStuffReplica implements AutoCloseable {
     private void touchProgress() { lastProgressTimeMs = System.currentTimeMillis(); }
 
     private void tryProposePending() {
-        Block block = pendingProposals.peek();
-        if (block == null) return;
+        Block stale = pendingProposals.peek();
+        if (stale == null) return;
         long v = view.get();
         if (phase != Phase.PREPARE) return;
         int requiredNewViews = membership.getN() - membership.getF();
@@ -152,6 +162,8 @@ public class HotStuffReplica implements AutoCloseable {
         if (newViewSenders == null || newViewSenders.size() < requiredNewViews)
             return;
         pendingProposals.poll();
+        // Block must use the current view (propose() may have been queued under an older view).
+        Block block = new Block(v, stale.getPayload());
         currentBlock = block;
         try {
             byte[] wire = ConsensusMessage.encodePrepare(v, block, highQC);
@@ -198,9 +210,21 @@ public class HotStuffReplica implements AutoCloseable {
         }
     }
 
+    /**
+     * Followers send NEW_VIEW to leader(v). If replicas' local views drift (independent timeouts),
+     * the leader may be behind: accept v &gt; view and sync before counting senders.
+     */
     private void handleNewView(int senderId, ConsensusMessage.Message msg) {
         long v = msg.getView();
-        if (v != view.get()) return;
+        if (v < view.get()) return;
+        if (v > view.get()) {
+            view.set(v);
+            phase = Phase.PREPARE;
+            currentBlock = null;
+            votes.clear();
+            lockedBlockHash = null;
+            lastProgressTimeMs = System.currentTimeMillis();
+        }
         if (membership.getLeaderId(v) != selfId) return;
         newViewSendersByView.computeIfAbsent(v, k -> new HashSet<>()).add(senderId);
     }

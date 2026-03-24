@@ -107,7 +107,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>depchain.demo.Demo</mainClass>
+                    <!-- Default: CLI entry (multi-JVM members/client). Old all-in-one: -Dexec.mainClass=depchain.demo.Demo -->
+                    <mainClass>depchain.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>
