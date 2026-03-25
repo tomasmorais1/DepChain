@@ -2,7 +2,11 @@ package depchain.client;
 
 import depchain.blockchain.Transaction;
 import depchain.blockchain.TransactionCommandCodec;
+import depchain.client.eth.TransactionEthHasher;
 import depchain.config.NodeAddress;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Sign;
+import org.web3j.utils.Numeric;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -19,7 +23,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Client library: append(string) broadcasts signed request to all members,
  * waits for f+1 identical responses before accepting (cannot trust first responder).
  * Clients sign requests with their private key so replicas can reject commands
- * forged by a byzantine leader.
+ * forged by a byzantine leader. {@link #append(String)} uses RSA (legacy/Demo);
+ * {@link #appendTransaction(Transaction)} uses secp256k1 + Keccak-256 (Ethereum-style).
  */
 public final class DepChainClient implements AutoCloseable {
     private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
@@ -31,6 +36,8 @@ public final class DepChainClient implements AutoCloseable {
     private final long timeoutMs;
     private final int maxRetries;
     private final KeyPair keyPair;
+    /** Required for {@link #appendTransaction(Transaction)}; optional for RSA-only {@link #append(String)}. */
+    private final Credentials ethCredentials;
     private final AtomicLong requestIdGen = new AtomicLong(0);
     private volatile DatagramSocket socket;
     private final Map<Long, ResponseAccumulator> pending = new ConcurrentHashMap<>();
@@ -57,6 +64,14 @@ public final class DepChainClient implements AutoCloseable {
 
     public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, InetSocketAddress bindAddress,
             KeyPair keyPair, long timeoutMs, int maxRetries) {
+        this(memberAddresses, clientPort, bindAddress, keyPair, null, timeoutMs, maxRetries);
+    }
+
+    /**
+     * @param ethCredentials used to sign Stage-2 transactions ({@link #appendTransaction}); may be null for RSA-only clients.
+     */
+    public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, InetSocketAddress bindAddress,
+            KeyPair keyPair, Credentials ethCredentials, long timeoutMs, int maxRetries) {
         this.memberAddresses = List.copyOf(memberAddresses);
         int n = this.memberAddresses.size();
         this.f = (n - 1) / 3;
@@ -65,6 +80,7 @@ public final class DepChainClient implements AutoCloseable {
         this.timeoutMs = timeoutMs;
         this.maxRetries = maxRetries;
         this.keyPair = keyPair != null ? keyPair : generateKeyPair();
+        this.ethCredentials = ethCredentials;
         try {
             this.socket = bindAddress != null
                     ? new DatagramSocket(bindAddress)
@@ -133,12 +149,55 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /** Submit a full Stage 2 transaction encoded as command payload. */
+    /** Submit a full Stage 2 transaction: Keccak-256 + ECDSA; replicas recover {@code from}. */
     public int appendTransaction(Transaction tx) throws InterruptedException {
         if (tx == null) {
             return -1;
         }
-        return append(TransactionCommandCodec.encode(tx));
+        if (ethCredentials == null) {
+            throw new IllegalStateException("ETH Credentials required for appendTransaction (use DepChainClient constructor with Credentials)");
+        }
+        String fromNorm = Numeric.cleanHexPrefix(TransactionEthHasher.normalizeAddr(tx.getFrom()));
+        String credNorm = Numeric.cleanHexPrefix(ethCredentials.getAddress());
+        if (!fromNorm.equalsIgnoreCase(credNorm)) {
+            throw new IllegalArgumentException("tx.from must match client ETH address: tx=" + tx.getFrom() + " cred=" + ethCredentials.getAddress());
+        }
+        String encoded = TransactionCommandCodec.encode(tx);
+        long requestId = requestIdGen.incrementAndGet();
+        byte[] hash = TransactionEthHasher.hashForSigning(tx);
+        Sign.SignatureData sig = Sign.signMessage(hash, ethCredentials.getEcKeyPair(), false);
+        byte[] payload = ClientProtocol.encodeEthRequest(requestId, encoded, sig);
+        ResponseAccumulator acc = new ResponseAccumulator(requiredResponses);
+        pending.put(requestId, acc);
+        try {
+            for (int r = 0; r < maxRetries; r++) {
+                try {
+                    System.err.println("[client] send ETH requestId=" + requestId + " to " + memberAddresses);
+                    for (NodeAddress addr : memberAddresses) {
+                        DatagramPacket p = new DatagramPacket(payload, payload.length, addr.toInetSocketAddress());
+                        socket.send(p);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    ClientProtocol.Response resp = acc.future.get(timeoutMs, TimeUnit.MILLISECONDS);
+                    System.err.println("[client] received f+1 identical responses requestId=" + requestId
+                            + " index=" + resp.getIndex() + " success=" + resp.isSuccess());
+                    return resp.isSuccess() ? resp.getIndex() : -1;
+                } catch (TimeoutException e) {
+                    System.err.println(
+                            "[client] timeout requestId=" + requestId + " retry " + (r + 1) + "/" + maxRetries);
+                    continue;
+                } catch (ExecutionException e) {
+                    return -1;
+                }
+            }
+            System.err.println("[client] all retries failed for requestId=" + requestId);
+            return -1;
+        } finally {
+            pending.remove(requestId);
+        }
     }
 
     /** Accumulates responses until requiredResponses (f+1) identical (same success, index) are received. */

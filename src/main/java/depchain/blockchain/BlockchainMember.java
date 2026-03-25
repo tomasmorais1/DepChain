@@ -245,13 +245,14 @@ public final class BlockchainMember implements AutoCloseable {
                     continue;
                 }
                 InetSocketAddress clientAddr = new InetSocketAddress(p.getAddress(), p.getPort());
-                if (TransactionCommandCodec.decode(req.getString()) == null) {
+                if (req.getProtocolKind() == ClientProtocol.TYPE_ETH_REQUEST
+                        && TransactionCommandCodec.decode(req.getString()) == null) {
                     System.err.println(
                         "[member " +
                         selfId +
                         "] dropped requestId=" +
                         req.getRequestId() +
-                        " (not a valid encoded Transaction)"
+                        " (ETH request: not a valid encoded Transaction)"
                     );
                     continue;
                 }

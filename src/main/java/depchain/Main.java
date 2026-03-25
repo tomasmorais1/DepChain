@@ -5,6 +5,7 @@ import depchain.blockchain.Transaction;
 import depchain.client.DepChainClient;
 import depchain.config.NodeAddress;
 import depchain.demo.MultiProcessConfig;
+import org.web3j.crypto.Credentials;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Paths;
@@ -12,6 +13,10 @@ import java.util.List;
 
 
 public class Main {
+    /** Hardhat default account #0 (matches genesis first account). */
+    private static final String DEMO_ETH_PRIVATE_KEY =
+            "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
     public static void main(String[] args) {
         try {
             if (args.length >= 1 && "demo".equalsIgnoreCase(args[0])) {
@@ -74,13 +79,15 @@ public class Main {
         System.out.println("DepChain client: waiting 4s for members to be ready...");
         Thread.sleep(4000);
         InetSocketAddress bindAddr = new InetSocketAddress("127.0.0.1", MultiProcessConfig.CLIENT_LISTEN);
-        DepChainClient client = new DepChainClient(targets, MultiProcessConfig.CLIENT_LISTEN, bindAddr, 15000L, 5);
+        Credentials eth = Credentials.create(DEMO_ETH_PRIVATE_KEY);
+        DepChainClient client = new DepChainClient(
+                targets, MultiProcessConfig.CLIENT_LISTEN, bindAddr, null, eth, 15000L, 5);
         System.out.println("Submitting 3 transactions to members at " + targets + " ...");
         boolean anyFail = false;
         for (int k = 0; k < 3; k++) {
             Transaction tx = new Transaction(
-                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+                "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
                 k,
                 10,
                 1,

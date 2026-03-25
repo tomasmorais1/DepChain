@@ -16,7 +16,7 @@ class ContractExecutionTest {
         TransactionExecutor executor = new TransactionExecutor();
 
         Transaction deploy = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             null,
             0,
             0,
@@ -33,7 +33,7 @@ class ContractExecutionTest {
         assertTrue(executor.getContractRegistry().contains(result.getCreatedContractAddress()));
         assertEquals(
             1,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getNonce()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getNonce()
         );
     }
 
@@ -44,7 +44,7 @@ class ContractExecutionTest {
         TransactionExecutor executor = new TransactionExecutor();
 
         Transaction deploy = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             null,
             0,
             0,
@@ -56,7 +56,7 @@ class ContractExecutionTest {
         String contractAddress = deployResult.getCreatedContractAddress();
 
         Transaction call = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             contractAddress,
             1,
             50,
@@ -80,7 +80,7 @@ class ContractExecutionTest {
         TransactionExecutor executor = new TransactionExecutor();
 
         Transaction call = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             "0xcccccccccccccccccccccccccccccccccccccccc",
             0,
             10,
@@ -94,7 +94,7 @@ class ContractExecutionTest {
         assertEquals("unknown contract address", result.getError());
         assertEquals(
             1,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getNonce()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getNonce()
         );
     }
 }

@@ -22,8 +22,8 @@ class BlockchainLedgerTest {
         BlockchainLedger ledger = new BlockchainLedger(state, genesis.getBlockHash());
 
         Transaction lowFee = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             0,
             10,
             1,
@@ -31,8 +31,8 @@ class BlockchainLedgerTest {
             null
         );
         Transaction highFee = new Transaction(
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             0,
             10,
             9,
@@ -70,8 +70,8 @@ class BlockchainLedgerTest {
         assertEquals(block.getHeight(), loaded.getHeight());
         assertEquals(block.getTransactions().size(), loaded.getTransactions().size());
         assertEquals(
-            block.getState().get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance(),
-            loaded.getState().get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
+            block.getState().get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance(),
+            loaded.getState().get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance()
         );
         assertTrue(block.getContractRuntimeHex().isEmpty());
         assertTrue(loaded.getContractRuntimeHex().isEmpty());
@@ -87,7 +87,7 @@ class BlockchainLedgerTest {
         BlockchainLedger ledger = new BlockchainLedger(state, genesis.getBlockHash(), exec);
 
         Transaction deploy = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             null,
             0,
             0,

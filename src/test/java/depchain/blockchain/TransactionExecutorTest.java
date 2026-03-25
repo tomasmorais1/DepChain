@@ -15,8 +15,8 @@ class TransactionExecutorTest {
         TransactionExecutor executor = new TransactionExecutor();
 
         Transaction tx = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             0,
             100,
             2,
@@ -31,15 +31,15 @@ class TransactionExecutorTest {
         assertEquals(42_000, result.getFeeCharged());
         assertEquals(
             10_000_000 - 42_000 - 100,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance()
         );
         assertEquals(
             10_000_000 + 100,
-            state.get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").getBalance()
+            state.get("0x70997970C51812dc3A010C7d01b50e0d17dc79C8").getBalance()
         );
         assertEquals(
             1,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getNonce()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getNonce()
         );
     }
 
@@ -50,8 +50,8 @@ class TransactionExecutorTest {
         TransactionExecutor executor = new TransactionExecutor();
 
         Transaction tx = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             0,
             100,
             3,
@@ -67,15 +67,15 @@ class TransactionExecutorTest {
         assertEquals(30_000, result.getFeeCharged());
         assertEquals(
             10_000_000 - 30_000,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance()
         );
         assertEquals(
             10_000_000,
-            state.get("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").getBalance()
+            state.get("0x70997970C51812dc3A010C7d01b50e0d17dc79C8").getBalance()
         );
         assertEquals(
             1,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getNonce()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getNonce()
         );
     }
 
@@ -86,8 +86,8 @@ class TransactionExecutorTest {
         TransactionExecutor executor = new TransactionExecutor();
 
         Transaction tx = new Transaction(
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             7,
             100,
             1,
@@ -101,11 +101,11 @@ class TransactionExecutorTest {
         assertEquals("invalid nonce", result.getError());
         assertEquals(
             10_000_000,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getBalance()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance()
         );
         assertEquals(
             0,
-            state.get("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").getNonce()
+            state.get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getNonce()
         );
     }
 }

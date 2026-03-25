@@ -1,7 +1,9 @@
 package depchain.client;
 
 import depchain.blockchain.Transaction;
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.Test;
+import org.web3j.crypto.Credentials;
 import org.junit.jupiter.api.Timeout;
 import depchain.blockchain.BlockchainMember;
 import depchain.config.Membership;
@@ -66,12 +68,21 @@ class ClientIntegrationTest {
         }
 
         int clientListenPort = basePort + 500;
-        DepChainClient client = new DepChainClient(clientTargets, clientListenPort, 8000L, 5);
+        Credentials eth = Credentials.create(
+                "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
+        DepChainClient client = new DepChainClient(
+                clientTargets,
+                clientListenPort,
+                new InetSocketAddress("127.0.0.1", clientListenPort),
+                null,
+                eth,
+                8000L,
+                5);
 
         try {
             Transaction tx = new Transaction(
-                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+                "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
                 0,
                 25,
                 1,

@@ -1,6 +1,8 @@
 package depchain.demo;
 
 import depchain.blockchain.BlockchainMember;
+import depchain.blockchain.Transaction;
+import depchain.blockchain.TransactionCommandCodec;
 import depchain.client.DepChainClient;
 import depchain.config.Membership;
 import depchain.config.NodeAddress;
@@ -58,11 +60,19 @@ public class Demo {
         Thread.sleep(1500);
         DepChainClient client = new DepChainClient(clientTargets, CLIENT_LISTEN, 10000L, 5);
 
-        System.out.println("DepChain demo: 4 members (threshold sig), 1 client. Appending 3 strings...");
+        System.out.println("DepChain demo: 4 members (threshold sig), 1 client. Appending 3 RSA-signed txs (JSON)...");
         for (int k = 0; k < 3; k++) {
-            String s = "demo-string-" + (k + 1);
-            int idx = client.append(s);
-            System.out.println("  append(\"" + s + "\") -> index " + idx);
+            Transaction tx = new Transaction(
+                    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+                    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+                    k,
+                    10,
+                    1,
+                    21_000,
+                    null);
+            String cmd = TransactionCommandCodec.encode(tx);
+            int idx = client.append(cmd);
+            System.out.println("  append(tx nonce=" + k + ") -> index " + idx);
         }
 
         Thread.sleep(500);

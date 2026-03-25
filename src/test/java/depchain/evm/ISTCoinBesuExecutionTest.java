@@ -25,10 +25,10 @@ class ISTCoinBesuExecutionTest {
     @Test
     void approve_requires_reset_to_zero_before_new_non_zero() {
         Address owner = Address.fromHexString(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            "f39fd6e51aad88f6f4ce6ab8827279cfffb92266"
         );
         Address spender = Address.fromHexString(
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            "70997970c51812dc3a010c7d01b50e0d17dc79c8"
         );
         Address contract = Address.fromHexString(
             "1234567891234567891234567891234567891234"

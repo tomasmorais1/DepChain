@@ -4,7 +4,9 @@ import depchain.blockchain.Transaction;
 import depchain.blockchain.BlockchainMember;
 import depchain.client.DepChainClient;
 import depchain.config.NodeAddress;
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.Test;
+import org.web3j.crypto.Credentials;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -43,12 +45,15 @@ class MultiProcessConfigIntegrationTest {
 
         Thread.sleep(800);
         List<NodeAddress> targets = MultiProcessConfig.getClientTargets(clientBase);
-        DepChainClient client = new DepChainClient(targets, clientListen, 15000L, 5);
+        Credentials eth = Credentials.create(
+                "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
+        DepChainClient client = new DepChainClient(
+                targets, clientListen, new InetSocketAddress("127.0.0.1", clientListen), null, eth, 15000L, 5);
 
         try {
             Transaction tx = new Transaction(
-                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+                "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
                 0,
                 7,
                 1,
