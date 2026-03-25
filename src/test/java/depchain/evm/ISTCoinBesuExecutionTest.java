@@ -16,13 +16,21 @@ import org.hyperledger.besu.evm.EvmSpecVersion;
 import org.hyperledger.besu.evm.account.MutableAccount;
 import org.hyperledger.besu.evm.fluent.EVMExecutor;
 import org.hyperledger.besu.evm.fluent.SimpleWorld;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Stage 2 Step 2 + Step 5: ERC-20 approval frontrunning mitigation — changing a non-zero allowance
+ * to another non-zero value requires an explicit reset to zero first (see {@code approve} in
+ * {@code ISTCoin.sol}).
+ */
+@DisplayName("ISTCoin EVM — approval frontrunning resistance (Step 5)")
 class ISTCoinBesuExecutionTest {
 
     private static final String APPROVE_SELECTOR = "095ea7b3";
 
     @Test
+    @DisplayName("approve(N) then approve(M) with M≠0 reverts until allowance reset to 0")
     void approve_requires_reset_to_zero_before_new_non_zero() {
         Address owner = Address.fromHexString(
             "f39fd6e51aad88f6f4ce6ab8827279cfffb92266"

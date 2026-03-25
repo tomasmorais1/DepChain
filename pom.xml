@@ -12,6 +12,7 @@
     <description>Dependable Chain - Basic HotStuff BFT consensus (Stage 1)</description>
 
     <properties>
+        <!-- Besu evm/datatypes 25.x ship Java 21 bytecode; use JDK 21+ for mvn (JAVA_HOME). -->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

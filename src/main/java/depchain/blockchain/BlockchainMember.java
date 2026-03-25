@@ -46,6 +46,8 @@ public final class BlockchainMember implements AutoCloseable {
     private final Set<String> appliedConsensusBlocks = ConcurrentHashMap.newKeySet();
     /** Verified requests are only queued; execution happens exclusively in DECIDE path. */
     private final ConcurrentLinkedQueue<ClientProtocol.Request> pendingRequests = new ConcurrentLinkedQueue<>();
+    /** Stage 2 PDF: blocks should carry multiple txs; fee order within block (see {@link TransactionBatchOrder}). */
+    private static final int MAX_TXS_PER_BLOCK = 64;
     private final Thread clientListenerThread;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final UdpTransport consensusTransport;
@@ -194,11 +196,14 @@ public final class BlockchainMember implements AutoCloseable {
         Thread t = new Thread(() -> {
             while (!closed.get()) {
                 if (membership.getLeaderId(replica.getView()) == selfId) {
-                    ClientProtocol.Request req = pendingRequests.poll();
-                    if (req != null) {
-                        byte[] payload = new TxBatchPayload(
-                            List.of(new TxBatchPayload.TxItem(req.getRequestId(), req.getString()))
-                        ).toBytes();
+                    List<ClientProtocol.Request> drained = drainBatchUpTo(MAX_TXS_PER_BLOCK);
+                    if (!drained.isEmpty()) {
+                        List<ClientProtocol.Request> ordered = TransactionBatchOrder.orderForProposal(drained);
+                        List<TxBatchPayload.TxItem> items = new ArrayList<>(ordered.size());
+                        for (ClientProtocol.Request req : ordered) {
+                            items.add(new TxBatchPayload.TxItem(req.getRequestId(), req.getString()));
+                        }
+                        byte[] payload = new TxBatchPayload(items).toBytes();
                         replica.propose(new Block(replica.getView(), payload));
                     }
                 }
@@ -211,6 +216,15 @@ public final class BlockchainMember implements AutoCloseable {
         }, "leader-propose-" + selfId);
         t.setDaemon(true);
         t.start();
+    }
+
+    private List<ClientProtocol.Request> drainBatchUpTo(int max) {
+        List<ClientProtocol.Request> batch = new ArrayList<>();
+        ClientProtocol.Request r;
+        while (batch.size() < max && (r = pendingRequests.poll()) != null) {
+            batch.add(r);
+        }
+        return batch;
     }
 
     /** Returns true iff every tx item in payload was received as a verified signed client request. */

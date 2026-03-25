@@ -20,6 +20,15 @@ The script compiles the project, generates a key file if it does not exist, star
 
 Compile with `mvn compile`. Run once: `java -cp target/classes depchain.Main genconfig` (creates the key file). Then open 4 terminals and run `java -cp target/classes depchain.Main member 0`, `member 1`, `member 2`, `member 3` respectively. When all four show "Member X running", open a 5th terminal and run `java -cp target/classes depchain.Main client`.
 
+### DEMO / evidências para professor
+
+- **Caminho rápido:** `./run-multijvm-demo.sh` (4 membros + cliente, um comando).
+- **Bizantinos / frontrunning:** correr a bateria Step 5 com Maven — lista de classes e comandos em **`STAGE2-STEP5-TESTS.md`** (secção “How to run the Step 5–focused suite”). Exemplo:
+  ```bash
+  mvn test -Dtest=ClientProtocolByzantineTest,VerifiedBatchLeaderInjectionTest,ByzantineClientIntegrationTest,ByzantineTest,ReplicaFailingTest,ISTCoinBesuExecutionTest
+  ```
+- **Nota:** cenários interactivos estilo consola (como noutros grupos) **não são obrigatórios**; os **testes** cobrem as propriedades relevantes do enunciado (incl. tolerância a réplicas/clientes bizantinos e mitigação de approval frontrunning no IST Coin).
+
 ---
 
 ## How to run the tests
@@ -72,6 +81,8 @@ Por isso, para **ordenar** transações no mesmo bloco usamos o **limite superio
 - **Desempate:** `nonce` crescente (`BlockchainLedger.appendBlock`).
 
 Isto aproxima “maior taxa / maior prioridade” de forma consistente com a fórmula de fee do PDF.
+
+**Consenso (Step 4):** o líder recolhe até **64** pedidos verificados da mempool (`BlockchainMember`), ordena-os com `TransactionBatchOrder` (maior `maxFeeOffer` primeiro entre *cabeças* de remetentes; por remetente mantém-se `nonce` crescente) e propõe **um bloco** com vários itens `TxBatchPayload`. Assim, um bloco pode conter várias transações e respeita o enunciado dentro do bloco.
 
 ### Gas usado na execução (fee `min(gas_price × gas_limit, gas_price × gas_used)`)
 

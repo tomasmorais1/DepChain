@@ -75,6 +75,20 @@ Quando lider, propor um bloco com varias transacoes (nao uma string).
 ### Critério de aceitação
 - O payload proposto contem lote ordenado e validavel por replicas.
 
+### 3.1) Implementado: lote por bloco + ordenação por fee (enunciado PDF)
+
+O PDF do Stage 2 pede que um **bloco proposto tenha várias transações** e que **dentro do bloco** a ordem de execução siga **prioridade por taxa** (maior *fee* primeiro), usando `gas_price` e `gas_limit` como no resto do projeto (`Transaction.maxFeeOffer()` ≈ limite superior a `min(gas_price×gas_limit, gas_price×gas_used)` antes de se conhecer `gas_used`).
+
+**Restrição extra:** para o **mesmo remetente**, os `nonce` têm de aumentar monotonicamente. Não basta ordenar globalmente só por fee — isso podia colocar `nonce` 1 antes de `nonce` 0 do mesmo endereço.
+
+**Solução no código:**
+
+- **`BlockchainMember`**: o líder faz *drain* de até **`MAX_TXS_PER_BLOCK` (64)** pedidos da fila `pendingRequests`, constrói um `TxBatchPayload` com vários itens e chama `replica.propose(...)` **uma vez** por iteração (quando há trabalho).
+- **`TransactionBatchOrder.orderForProposal(...)`**: agrupa pedidos por `from`, ordena cada cadeia por `nonce`; depois faz *merge* repetindo: entre as **cabeças** de cada cadeia, escolhe a transação com maior prioridade de fee (`Transaction.FEE_PRIORITY`), com desempate determinístico (`from`, `nonce`). Assim o bloco cumpre “maior fee primeiro” **sem** violar a ordem de `nonce` por conta.
+- **Testes:** `TransactionBatchOrderTest` (dois remetentes: maior fee primeiro; um remetente: ordem 0,1,2).
+
+**Alternativa evitada:** justificar só no relatório que “várias transações” aparecem **em blocos diferentes** — mais fraco perante o enunciado; a implementação acima alinha o código ao texto do PDF.
+
 ---
 
 ## 4) Validator de bloco no consenso (anti-leader byzantine)
@@ -188,6 +202,7 @@ Criar/atualizar testes com JUnit para provar o requisito do enunciado:
 ## 10) Checklist final (Step 4 completo)
 
 - [x] Consenso decide blocos com transacoes (nao strings).
+- [x] Lider pode propor **lote** (ate 64 txs) com ordenacao por fee + respeito a nonce por remetente (`TransactionBatchOrder`).
 - [x] Replicas executam apenas apos DECIDE.
 - [x] Ordem de execucao = ordem decidida.
 - [x] LedgerBlock e persistido para cada bloco decidido.
