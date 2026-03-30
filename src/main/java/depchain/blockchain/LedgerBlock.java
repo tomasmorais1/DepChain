@@ -22,6 +22,12 @@ public final class LedgerBlock {
     private final Map<String, WorldState.AccountSnapshot> state;
     /** Contract address → runtime bytecode as lowercase hex (no 0x). */
     private final Map<String, String> contractRuntimeHex;
+    /**
+     * Contract address → (storage slot → value) as lowercase hex.
+     * <p>Both keys and values are 32-byte quantities encoded as 64 hex chars (no {@code 0x}).
+     * Slots not present are assumed to be zero.
+     */
+    private final Map<String, Map<String, String>> contractStorageHex;
 
     public LedgerBlock(
         String blockHash,
@@ -30,7 +36,8 @@ public final class LedgerBlock {
         long timestamp,
         List<ExecutedTransaction> transactions,
         Map<String, WorldState.AccountSnapshot> state,
-        Map<String, String> contractRuntimeHex
+        Map<String, String> contractRuntimeHex,
+        Map<String, Map<String, String>> contractStorageHex
     ) {
         this.blockHash = blockHash;
         this.previousBlockHash = previousBlockHash;
@@ -44,6 +51,10 @@ public final class LedgerBlock {
             contractRuntimeHex == null || contractRuntimeHex.isEmpty()
                 ? Collections.emptyMap()
                 : Collections.unmodifiableMap(new LinkedHashMap<>(contractRuntimeHex));
+        this.contractStorageHex =
+            contractStorageHex == null || contractStorageHex.isEmpty()
+                ? Collections.emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(contractStorageHex));
     }
 
     public String getBlockHash() {
@@ -75,5 +86,12 @@ public final class LedgerBlock {
      */
     public Map<String, String> getContractRuntimeHex() {
         return contractRuntimeHex;
+    }
+
+    /**
+     * Persisted contract storage snapshot for this block: address → (slot → value), hex (no {@code 0x}).
+     */
+    public Map<String, Map<String, String>> getContractStorageHex() {
+        return contractStorageHex;
     }
 }

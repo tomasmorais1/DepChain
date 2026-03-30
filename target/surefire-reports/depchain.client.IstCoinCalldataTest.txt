@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: depchain.client.IstCoinCalldataTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in depchain.client.IstCoinCalldataTest

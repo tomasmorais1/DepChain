@@ -16,6 +16,7 @@ import java.security.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -41,6 +42,7 @@ public final class DepChainClient implements AutoCloseable {
     private final AtomicLong requestIdGen = new AtomicLong(0);
     private volatile DatagramSocket socket;
     private final Map<Long, ResponseAccumulator> pending = new ConcurrentHashMap<>();
+    private final Map<Long, QueryAccumulator> pendingQueries = new ConcurrentHashMap<>();
     private final Thread receiverThread;
     private volatile boolean closed;
 
@@ -200,6 +202,94 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
+    /**
+     * Query native DepCoin balance. Client waits for f+1 identical replies (never all replicas).
+     */
+    public long queryDepCoinBalance(String address) throws InterruptedException {
+        return queryDepCoinBalance(address, 0);
+    }
+
+    /**
+     * Query native DepCoin balance, requiring replies from replicas whose headHeight is at least {@code minHeadHeight}.
+     * Useful for read-after-write: first do appendTransaction(), then query with minHeadHeight = decided index.
+     */
+    public long queryDepCoinBalance(String address, int minHeadHeight) throws InterruptedException {
+        long requestId = requestIdGen.incrementAndGet();
+        byte[] payload = ClientProtocol.encodeQueryRequest(requestId, ClientProtocol.QUERY_DEP_BALANCE, address);
+        QueryAccumulator acc = new QueryAccumulator(requiredResponses, minHeadHeight);
+        pendingQueries.put(requestId, acc);
+        try {
+            for (int r = 0; r < maxRetries; r++) {
+                try {
+                    for (NodeAddress addr : memberAddresses) {
+                        DatagramPacket p = new DatagramPacket(payload, payload.length, addr.toInetSocketAddress());
+                        socket.send(p);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    ClientProtocol.QueryResponse resp = acc.future.get(timeoutMs, TimeUnit.MILLISECONDS);
+                    if (!resp.isSuccess() || resp.getReturnData().length != 8) return -1L;
+                    return java.nio.ByteBuffer.wrap(resp.getReturnData()).getLong();
+                } catch (TimeoutException e) {
+                    continue;
+                } catch (ExecutionException e) {
+                    return -1L;
+                }
+            }
+            return -1L;
+        } finally {
+            pendingQueries.remove(requestId);
+        }
+    }
+
+    /**
+     * Query IST Coin balance via balanceOf(contract, address). Returns uint256 truncated to long if it fits.
+     * The raw EVM returnData is compared across replicas via f+1 identical replies.
+     */
+    public java.math.BigInteger queryIstBalanceOf(String contractAddress, String address) throws InterruptedException {
+        return queryIstBalanceOf(contractAddress, address, 0);
+    }
+
+    /**
+     * Query IST Coin balance requiring replies from replicas whose headHeight is at least {@code minHeadHeight}.
+     */
+    public java.math.BigInteger queryIstBalanceOf(String contractAddress, String address, int minHeadHeight)
+            throws InterruptedException {
+        String payloadStr = contractAddress + "|" + address;
+        long requestId = requestIdGen.incrementAndGet();
+        byte[] payload = ClientProtocol.encodeQueryRequest(requestId, ClientProtocol.QUERY_IST_BALANCE_OF, payloadStr);
+        QueryAccumulator acc = new QueryAccumulator(requiredResponses, minHeadHeight);
+        pendingQueries.put(requestId, acc);
+        try {
+            for (int r = 0; r < maxRetries; r++) {
+                try {
+                    for (NodeAddress addr : memberAddresses) {
+                        DatagramPacket p = new DatagramPacket(payload, payload.length, addr.toInetSocketAddress());
+                        socket.send(p);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    ClientProtocol.QueryResponse resp = acc.future.get(timeoutMs, TimeUnit.MILLISECONDS);
+                    if (!resp.isSuccess()) return java.math.BigInteger.valueOf(-1);
+                    byte[] rd = resp.getReturnData();
+                    if (rd.length == 0) return java.math.BigInteger.ZERO;
+                    return new java.math.BigInteger(1, rd);
+                } catch (TimeoutException e) {
+                    continue;
+                } catch (ExecutionException e) {
+                    return java.math.BigInteger.valueOf(-1);
+                }
+            }
+            return java.math.BigInteger.valueOf(-1);
+        } finally {
+            pendingQueries.remove(requestId);
+        }
+    }
+
     /** Accumulates responses until requiredResponses (f+1) identical (same success, index) are received. */
     private static final class ResponseAccumulator {
         final CompletableFuture<ClientProtocol.Response> future = new CompletableFuture<>();
@@ -217,6 +307,39 @@ public final class DepChainClient implements AutoCloseable {
                 long count = responses.stream()
                         .filter(y -> y.getIndex() == x.getIndex() && y.isSuccess() == x.isSuccess())
                         .count();
+                if (count >= required) {
+                    future.complete(x);
+                    return;
+                }
+            }
+        }
+    }
+
+    /** Accumulates query responses until requiredResponses (f+1) identical are received. */
+    private static final class QueryAccumulator {
+        final CompletableFuture<ClientProtocol.QueryResponse> future = new CompletableFuture<>();
+        final int required;
+        final int minHeadHeight;
+        final List<ClientProtocol.QueryResponse> responses = new ArrayList<>();
+
+        QueryAccumulator(int required, int minHeadHeight) {
+            this.required = required;
+            this.minHeadHeight = Math.max(0, minHeadHeight);
+        }
+
+        synchronized void add(ClientProtocol.QueryResponse r) {
+            if (future.isDone()) return;
+            if (r.getHeadHeight() < minHeadHeight) return;
+            responses.add(r);
+            for (ClientProtocol.QueryResponse x : responses) {
+                long count = responses.stream()
+                    .filter(y ->
+                        y.isSuccess() == x.isSuccess()
+                            && y.getHeadHeight() == x.getHeadHeight()
+                            && Objects.equals(y.getHeadHash(), x.getHeadHash())
+                            && java.util.Arrays.equals(y.getReturnData(), x.getReturnData())
+                    )
+                    .count();
                 if (count >= required) {
                     future.complete(x);
                     return;
@@ -244,6 +367,12 @@ public final class DepChainClient implements AutoCloseable {
                 socket.receive(p);
                 byte[] copy = new byte[p.getLength()];
                 System.arraycopy(p.getData(), p.getOffset(), copy, 0, p.getLength());
+                ClientProtocol.QueryResponse q = ClientProtocol.parseQueryResponse(copy);
+                if (q != null) {
+                    QueryAccumulator acc = pendingQueries.get(q.getRequestId());
+                    if (acc != null) acc.add(q);
+                    continue;
+                }
                 ClientProtocol.Response resp = ClientProtocol.parseResponse(copy);
                 if (resp != null) {
                     System.err.println("[client] recv response requestId=" + resp.getRequestId() + " from "

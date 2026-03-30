@@ -2,7 +2,9 @@ package depchain.blockchain;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -13,12 +15,24 @@ public final class Genesis {
     private final String previousBlockHash;
     private final List<GenesisAccount> accounts;
     private final List<Transaction> transactions;
+    /** Optional: contract accounts with runtime bytecode and raw storage slots (32-byte hex keys/values). */
+    private final List<GenesisContract> contracts;
 
     public Genesis(
         String blockHash,
         String previousBlockHash,
         List<GenesisAccount> accounts,
         List<Transaction> transactions
+    ) {
+        this(blockHash, previousBlockHash, accounts, transactions, null);
+    }
+
+    public Genesis(
+        String blockHash,
+        String previousBlockHash,
+        List<GenesisAccount> accounts,
+        List<Transaction> transactions,
+        List<GenesisContract> contracts
     ) {
         this.blockHash = blockHash;
         this.previousBlockHash = previousBlockHash;
@@ -28,6 +42,9 @@ public final class Genesis {
         this.transactions = transactions == null
             ? Collections.emptyList()
             : Collections.unmodifiableList(new ArrayList<>(transactions));
+        this.contracts = contracts == null
+            ? Collections.emptyList()
+            : Collections.unmodifiableList(new ArrayList<>(contracts));
     }
 
     public String getBlockHash() {
@@ -44,6 +61,10 @@ public final class Genesis {
 
     public List<Transaction> getTransactions() {
         return transactions;
+    }
+
+    public List<GenesisContract> getContracts() {
+        return contracts;
     }
 
     public static final class GenesisAccount {
@@ -88,6 +109,41 @@ public final class Genesis {
         @Override
         public int hashCode() {
             return Objects.hash(address, balance, nonce);
+        }
+    }
+
+    /**
+     * Static bootstrap of a contract account: runtime bytecode plus explicit EVM storage (slot → value as hex).
+     */
+    public static final class GenesisContract {
+        private final String address;
+        private final String runtimeHex;
+        private final Map<String, String> storage;
+
+        public GenesisContract(String address, String runtimeHex, Map<String, String> storage) {
+            if (address == null || address.isBlank()) {
+                throw new IllegalArgumentException("contract address cannot be null/blank");
+            }
+            if (runtimeHex == null || runtimeHex.isBlank()) {
+                throw new IllegalArgumentException("runtimeHex cannot be null/blank");
+            }
+            this.address = address;
+            this.runtimeHex = runtimeHex;
+            this.storage = storage == null || storage.isEmpty()
+                ? Map.of()
+                : Map.copyOf(new LinkedHashMap<>(storage));
+        }
+
+        public String getAddress() {
+            return address;
+        }
+
+        public String getRuntimeHex() {
+            return runtimeHex;
+        }
+
+        public Map<String, String> getStorage() {
+            return storage;
         }
     }
 }

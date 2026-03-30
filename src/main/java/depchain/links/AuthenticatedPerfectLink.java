@@ -36,6 +36,8 @@ public class AuthenticatedPerfectLink implements AutoCloseable {
     private final Membership membership;
     private final FairLossLink fairLoss;
     private final PrivateKey privateKey;
+    /** If non-null, consensus link uses HMAC(ECDH-derived) instead of RSA signatures. */
+    private final LinkMacAuthenticator linkMac;
     private final Map<Integer, NodeAddress> idToAddress;
     private final Map<Long, Boolean> seenMessageIds = new ConcurrentHashMap<>();
     private static final int SEEN_MAX = 100_000;
@@ -49,10 +51,21 @@ public class AuthenticatedPerfectLink implements AutoCloseable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public AuthenticatedPerfectLink(int selfId, Membership membership, FairLossLink fairLoss, PrivateKey privateKey) {
+        this(selfId, membership, fairLoss, privateKey, null);
+    }
+
+    public AuthenticatedPerfectLink(
+        int selfId,
+        Membership membership,
+        FairLossLink fairLoss,
+        PrivateKey privateKey,
+        LinkMacAuthenticator linkMac
+    ) {
         this.selfId = selfId;
         this.membership = Objects.requireNonNull(membership);
         this.fairLoss = Objects.requireNonNull(fairLoss);
         this.privateKey = Objects.requireNonNull(privateKey);
+        this.linkMac = linkMac;
         this.idToAddress = new ConcurrentHashMap<>();
         for (int id : membership.getMemberIds()) {
             idToAddress.put(id, membership.getAddress(id));
@@ -71,8 +84,14 @@ public class AuthenticatedPerfectLink implements AutoCloseable {
     public void sendWithId(byte[] payload, int destId, long messageId) throws IOException {
         APLMessage msg = new APLMessage(selfId, messageId, payload);
         byte[] signedContent = msg.getSignedContent();
-        byte[] signature = sign(signedContent);
-        byte[] wire = APLMessage.encode(signedContent, signature);
+        byte[] wire;
+        if (linkMac != null) {
+            byte[] mac = linkMac.macForPeer(destId, signedContent);
+            wire = APLMessage.encodeHmac(signedContent, mac);
+        } else {
+            byte[] signature = sign(signedContent);
+            wire = APLMessage.encode(signedContent, signature);
+        }
         NodeAddress dest = membership.getAddress(destId);
         if (dest == null)
             throw new IllegalArgumentException("unknown dest: " + destId);
@@ -127,8 +146,14 @@ public class AuthenticatedPerfectLink implements AutoCloseable {
         try {
             APLMessage ack = APLMessage.createAck(selfId, messageId);
             byte[] signedContent = ack.getSignedContent();
-            byte[] signature = sign(signedContent);
-            byte[] wire = APLMessage.encode(signedContent, signature);
+            byte[] wire;
+            if (linkMac != null) {
+                byte[] mac = linkMac.macForPeer(destId, signedContent);
+                wire = APLMessage.encodeHmac(signedContent, mac);
+            } else {
+                byte[] signature = sign(signedContent);
+                wire = APLMessage.encode(signedContent, signature);
+            }
             NodeAddress dest = membership.getAddress(destId);
             if (dest != null)
                 fairLoss.send(wire, dest);
@@ -169,11 +194,18 @@ public class AuthenticatedPerfectLink implements AutoCloseable {
         int senderId = parsed.getSenderId();
         if (!membership.isMember(senderId))
             return null;
-        PublicKey pubKey = membership.getPublicKey(senderId);
-        if (pubKey == null)
-            return null;
-        if (!verify(parsed.getSignedContent(), parsed.getSignature(), pubKey))
-            return null;
+        if (parsed.isHmacMode()) {
+            if (linkMac == null) return null;
+            if (!linkMac.verifyMacFromPeer(senderId, parsed.getSignedContent(), parsed.getSignature()))
+                return null;
+        } else {
+            if (linkMac != null) return null;
+            PublicKey pubKey = membership.getPublicKey(senderId);
+            if (pubKey == null)
+                return null;
+            if (!verify(parsed.getSignedContent(), parsed.getSignature(), pubKey))
+                return null;
+        }
 
         if (parsed.getType() == APLMessage.TYPE_ACK) {
             long key = pendingKey(parsed.getMessageId(), senderId);

@@ -35,6 +35,10 @@ public class Main {
                 runGenConfig();
                 return;
             }
+            if (args.length >= 1 && "interactive".equalsIgnoreCase(args[0])) {
+                depchain.client.InteractiveCli.main(args);
+                return;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -130,6 +134,7 @@ public class Main {
         System.err.println("  java depchain.Main genconfig        -- generate key file for multi-JVM (run once)");
         System.err.println("  java depchain.Main member <0|1|2|3> -- run one member (after genconfig)");
         System.err.println("  java depchain.Main client           -- run client only (5th terminal)");
+        System.err.println("  java depchain.Main interactive      -- IST/DepCoin REPL (after members up)");
         System.err.println("Or: mvn exec:java -Dexec.mainClass=depchain.demo.Demo");
     }
 }

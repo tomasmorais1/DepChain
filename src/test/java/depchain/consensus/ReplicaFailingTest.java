@@ -62,7 +62,7 @@ class ReplicaFailingTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            ConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             if (i == failingReplica)
                 net = new VoteDroppingConsensusNetwork(net);
             BlockchainService chain = new BlockchainService();
@@ -125,7 +125,7 @@ class ReplicaFailingTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            ConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             if (i == 2 || i == 3)
                 net = new SilentConsensusNetwork(net);
             BlockchainService chain = new BlockchainService();

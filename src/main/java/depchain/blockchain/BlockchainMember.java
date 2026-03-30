@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.tuweni.bytes.Bytes;
 
 /**
  * Single blockchain member: runs consensus, client request listener, and blockchain service.
@@ -48,6 +49,8 @@ public final class BlockchainMember implements AutoCloseable {
     private final ConcurrentLinkedQueue<ClientProtocol.Request> pendingRequests = new ConcurrentLinkedQueue<>();
     /** Stage 2 PDF: blocks should carry multiple txs; fee order within block (see {@link TransactionBatchOrder}). */
     private static final int MAX_TXS_PER_BLOCK = 64;
+    /** Block weight (gas cap) à la Ethereum; chosen by us as per faculty guidance. */
+    private static final long MAX_GAS_PER_BLOCK = 5_000_000L;
     private final Thread clientListenerThread;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final UdpTransport consensusTransport;
@@ -68,10 +71,12 @@ public final class BlockchainMember implements AutoCloseable {
         Genesis genesis = GenesisLoader.loadFromResource("/blockchain/genesis.json");
         this.ledger =
             new BlockchainLedger(WorldState.fromGenesis(genesis), genesis.getBlockHash());
+        applyGenesisContracts(genesis);
+        bootstrapIstIfPresent(genesis);
         this.consensusTransport = new UdpTransport(consensusPort, 8192);
         this.fairLoss = new FairLossLink(consensusTransport, 5, 40);
-        this.apl = new AuthenticatedPerfectLink(selfId, membership, fairLoss, config.privateKey);
-        ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+        this.apl = new AuthenticatedPerfectLink(selfId, membership, fairLoss, config.privateKey, config.linkMac);
+        ConsensusNetwork net = new APLConsensusNetwork(selfId, apl, membership);
         HotStuffReplica.BlockValidator validator = this::isVerifiedClientBlock;
         this.replica = new HotStuffReplica(selfId, membership, net, config.keyShare, config.groupKey, this::onDecide, validator, viewTimeoutMs);
         this.clientSocket = new DatagramSocket(clientPort);
@@ -79,6 +84,78 @@ public final class BlockchainMember implements AutoCloseable {
         this.clientListenerThread.setDaemon(true);
         this.clientListenerThread.start();
         startLeaderProposeLoop();
+    }
+
+    /**
+     * Installs bytecode and optional storage for any {@code genesis.contracts} entries (general contract bootstrap).
+     */
+    private void applyGenesisContracts(Genesis genesis) {
+        if (genesis == null || genesis.getContracts() == null || genesis.getContracts().isEmpty()) {
+            return;
+        }
+        TransactionExecutor exec = ledger.getExecutor();
+        if (exec == null) {
+            return;
+        }
+        for (Genesis.GenesisContract c : genesis.getContracts()) {
+            byte[] runtime = hexStringToBytes(c.getRuntimeHex());
+            String addr = c.getAddress();
+            exec.getContractRegistry().put(addr, runtime);
+            exec.getEvm().setContractCode(addr, runtime);
+            ledger.getWorldState().getOrCreate(addr);
+            exec.getEvm().upsertAccount(addr, 0, 0);
+            for (Map.Entry<String, String> slot : c.getStorage().entrySet()) {
+                exec.getEvm().putStorageHex(addr, slot.getKey(), slot.getValue());
+            }
+        }
+    }
+
+    private static byte[] hexStringToBytes(String hex) {
+        String s = hex == null ? "" : hex.trim();
+        if (s.startsWith("0x") || s.startsWith("0X")) {
+            s = s.substring(2);
+        }
+        if ((s.length() & 1) != 0) {
+            s = "0" + s;
+        }
+        if (s.isEmpty()) {
+            return new byte[0];
+        }
+        byte[] out = new byte[s.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = (byte) Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16);
+        }
+        return out;
+    }
+
+    /**
+     * Bootstraps IST Coin contract state directly from genesis.json, without going through consensus.
+     * Required so read-queries (e.g. balanceOf) can be answered immediately as per faculty guidance.
+     */
+    private void bootstrapIstIfPresent(Genesis genesis) {
+        if (genesis == null || genesis.getTransactions() == null || genesis.getTransactions().isEmpty()) return;
+        Transaction deploy = null;
+        for (Transaction t : genesis.getTransactions()) {
+            if (t != null && t.isContractDeployment()) {
+                deploy = t;
+                break;
+            }
+        }
+        if (deploy == null) return;
+        TransactionExecutor exec = ledger.getExecutor();
+        if (exec == null) return;
+        if (!depchain.blockchain.evm.IstCoinBytecode.isKnownCreationBytecode(deploy.getData())) return;
+
+        String contractAddress = TransactionExecutor.deriveContractAddress(deploy.getFrom(), deploy.getNonce());
+        if (exec.getContractRegistry().contains(contractAddress)) {
+            return;
+        }
+        byte[] runtime = depchain.blockchain.evm.IstCoinBytecode.readRuntimeBytecode();
+        exec.getContractRegistry().put(contractAddress, runtime);
+        exec.getEvm().setContractCode(contractAddress, runtime);
+        ledger.getWorldState().getOrCreate(contractAddress);
+        exec.getEvm().upsertAccount(contractAddress, 0, 0);
+        exec.getEvm().seedIstCoinBalancesAfterDeploy(deploy.getFrom(), contractAddress);
     }
 
     private void onDecide(Block block) {
@@ -196,15 +273,23 @@ public final class BlockchainMember implements AutoCloseable {
         Thread t = new Thread(() -> {
             while (!closed.get()) {
                 if (membership.getLeaderId(replica.getView()) == selfId) {
-                    List<ClientProtocol.Request> drained = drainBatchUpTo(MAX_TXS_PER_BLOCK);
+                    // Drain some work from the mempool, then build a greedy block up to gas cap.
+                    List<ClientProtocol.Request> drained = drainBatchUpTo(512);
                     if (!drained.isEmpty()) {
-                        List<ClientProtocol.Request> ordered = TransactionBatchOrder.orderForProposal(drained);
-                        List<TxBatchPayload.TxItem> items = new ArrayList<>(ordered.size());
-                        for (ClientProtocol.Request req : ordered) {
-                            items.add(new TxBatchPayload.TxItem(req.getRequestId(), req.getString()));
+                        BlockBatcher.Result r =
+                            BlockBatcher.selectGreedyByGasCap(drained, MAX_TXS_PER_BLOCK, MAX_GAS_PER_BLOCK);
+                        // Put leftovers back into the mempool so they can be proposed in later blocks.
+                        for (ClientProtocol.Request x : r.leftover()) {
+                            pendingRequests.offer(x);
                         }
-                        byte[] payload = new TxBatchPayload(items).toBytes();
-                        replica.propose(new Block(replica.getView(), payload));
+                        if (!r.selected().isEmpty()) {
+                            List<TxBatchPayload.TxItem> items = new ArrayList<>(r.selected().size());
+                            for (ClientProtocol.Request req : r.selected()) {
+                                items.add(new TxBatchPayload.TxItem(req.getRequestId(), req.getString()));
+                            }
+                            byte[] payload = new TxBatchPayload(items).toBytes();
+                            replica.propose(new Block(replica.getView(), payload));
+                        }
                     }
                 }
                 try {
@@ -254,6 +339,11 @@ public final class BlockchainMember implements AutoCloseable {
                 System.arraycopy(p.getData(), p.getOffset(), copy, 0, p.getLength());
                 ClientProtocol.Request req = ClientProtocol.parseRequest(copy);
                 if (req == null) continue;
+                if (req.getProtocolKind() == ClientProtocol.TYPE_QUERY) {
+                    InetSocketAddress clientAddr = new InetSocketAddress(p.getAddress(), p.getPort());
+                    handleQuery(req, clientAddr);
+                    continue;
+                }
                 if (!ClientProtocol.verifyRequest(req)) {
                     System.err.println("[member " + selfId + "] dropped client request requestId=" + req.getRequestId() + " (invalid or missing signature)");
                     continue;
@@ -277,6 +367,54 @@ public final class BlockchainMember implements AutoCloseable {
             } catch (IOException e) {
                 if (!closed.get()) e.printStackTrace();
             }
+        }
+    }
+
+    private void handleQuery(ClientProtocol.Request req, InetSocketAddress clientAddr) {
+        byte queryKind = req.getQueryKind();
+        long requestId = req.getRequestId();
+        byte[] returnData = new byte[0];
+        boolean success = true;
+
+        try {
+            String payload = req.getString() == null ? "" : req.getString().trim();
+            if (queryKind == ClientProtocol.QUERY_DEP_BALANCE) {
+                String address = payload;
+                WorldState.AccountState acc = ledger.getWorldState().get(address);
+                long bal = acc == null ? 0L : acc.getBalance();
+                returnData = java.nio.ByteBuffer.allocate(8).putLong(bal).array();
+            } else if (queryKind == ClientProtocol.QUERY_IST_BALANCE_OF) {
+                String[] parts = payload.split("\\|", 2);
+                if (parts.length != 2) {
+                    throw new IllegalArgumentException("IST query payload must be <contract>|<address>");
+                }
+                String contract = parts[0].trim();
+                String who = parts[1].trim();
+                // Read-only optimization: for IST balanceOf, return the uint256 directly from storage.
+                // This still matches the required returnData semantics without needing to run EVM code.
+                Bytes out = ledger.getExecutor().getEvm().readIstBalanceOfReturnData(contract, who);
+                returnData = out == null ? new byte[0] : out.toArrayUnsafe();
+            } else {
+                success = false;
+            }
+        } catch (Exception e) {
+            success = false;
+        }
+
+        LedgerBlock head = null;
+        List<LedgerBlock> blocks = ledger.getBlocks();
+        if (!blocks.isEmpty()) {
+            head = blocks.get(blocks.size() - 1);
+        }
+        int headHeight = head == null ? 0 : Math.toIntExact(head.getHeight());
+        String headHash = head == null ? "" : head.getBlockHash();
+
+        try {
+            byte[] resp = ClientProtocol.encodeQueryResponse(requestId, success, headHeight, headHash, returnData);
+            DatagramPacket pkt = new DatagramPacket(resp, resp.length, clientAddr);
+            clientSocket.send(pkt);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

@@ -8,7 +8,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Loads Step 3 genesis configuration from JSON resources.
@@ -70,11 +72,27 @@ public final class GenesisLoader {
                 }
             }
 
+            List<Genesis.GenesisContract> contracts = new ArrayList<>();
+            if (json.contracts != null) {
+                for (GenesisContractJson cj : json.contracts) {
+                    Map<String, String> slots = new LinkedHashMap<>();
+                    if (cj.storage != null) {
+                        for (Map.Entry<String, String> e : cj.storage.entrySet()) {
+                            if (e.getKey() != null && e.getValue() != null) {
+                                slots.put(e.getKey(), e.getValue());
+                            }
+                        }
+                    }
+                    contracts.add(new Genesis.GenesisContract(cj.address, cj.runtimeHex, slots));
+                }
+            }
+
             return new Genesis(
                 json.blockHash,
                 json.previousBlockHash,
                 accounts,
-                transactions
+                transactions,
+                contracts
             );
         } catch (IOException e) {
             throw new RuntimeException("Unable to parse genesis JSON", e);
@@ -106,6 +124,13 @@ public final class GenesisLoader {
         String previousBlockHash;
         List<GenesisAccountJson> accounts;
         List<TransactionJson> transactions;
+        List<GenesisContractJson> contracts;
+    }
+
+    private static final class GenesisContractJson {
+        String address;
+        String runtimeHex;
+        Map<String, String> storage;
     }
 
     private static final class GenesisAccountJson {

@@ -7,10 +7,12 @@ import java.io.IOException;
 
 /** Consensus network over APL: broadcast to all members. */
 public final class APLConsensusNetwork implements ConsensusNetwork {
+    private final int selfId;
     private final AuthenticatedPerfectLink apl;
     private final Membership membership;
 
-    public APLConsensusNetwork(AuthenticatedPerfectLink apl, Membership membership) {
+    public APLConsensusNetwork(int selfId, AuthenticatedPerfectLink apl, Membership membership) {
+        this.selfId = selfId;
         this.apl = apl;
         this.membership = membership;
     }
@@ -18,12 +20,14 @@ public final class APLConsensusNetwork implements ConsensusNetwork {
     @Override
     public void sendToAll(byte[] payload) throws IOException {
         for (int id : membership.getMemberIds()) {
+            if (id == selfId) continue;
             apl.send(payload, id);
         }
     }
 
     @Override
     public void sendTo(int memberId, byte[] payload) throws IOException {
+        if (memberId == selfId) return;
         apl.send(payload, memberId);
     }
 

@@ -58,6 +58,15 @@ public final class TransactionExecutor {
         return executeNativeTransfer(state, tx);
     }
 
+    /**
+     * Deterministic contract address derivation used by DepChain.
+     * <p>This is not Ethereum CREATE; it is a project-specific stable derivation so all replicas
+     * compute the same address from the same deployer + nonce.
+     */
+    public static String deriveContractAddress(String from, long nonce) {
+        return deriveContractAddressInternal(from, nonce);
+    }
+
     private TransactionExecutionResult executeContractDeployment(
         WorldState state,
         Transaction tx
@@ -276,7 +285,7 @@ public final class TransactionExecutor {
         }
     }
 
-    private static String deriveContractAddress(String from, long nonce) {
+    private static String deriveContractAddressInternal(String from, long nonce) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             digest.update(from.getBytes(StandardCharsets.UTF_8));

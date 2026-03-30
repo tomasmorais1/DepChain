@@ -169,6 +169,9 @@ public class HotStuffReplica implements AutoCloseable {
             byte[] wire = ConsensusMessage.encodePrepare(v, block, highQC);
             network.sendToAll(wire);
             System.err.println("[member " + selfId + "] leader sent PREPARE view " + v);
+            // Leader's share must count toward the quorum: with f Byzantine followers, the leader
+            // supplies the (2f+1)th valid vote. sendVote delivers locally when sendTo(self) is a no-op.
+            sendVote(ConsensusMessage.TYPE_PREPARE_VOTE, v, block.getBlockHash());
         } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -352,6 +355,11 @@ public class HotStuffReplica implements AutoCloseable {
                     view.incrementAndGet();
                     phase = Phase.PREPARE;
                     currentBlock = null;
+                } else {
+                    byte followVote = expectedPhase == Phase.PREPARE
+                            ? ConsensusMessage.TYPE_PRE_COMMIT_VOTE
+                            : ConsensusMessage.TYPE_COMMIT_VOTE;
+                    sendVote(followVote, v, currentBlock.getBlockHash());
                 }
             } catch (IOException e) { e.printStackTrace(); }
         }
@@ -421,7 +429,11 @@ public class HotStuffReplica implements AutoCloseable {
             else if (voteType == ConsensusMessage.TYPE_COMMIT_VOTE)
                 wire = ConsensusMessage.encodeCommitVote(v, blockHash, sigWire);
             else return;
-            network.sendTo(membership.getLeaderId(v), wire);
+            int leaderId = membership.getLeaderId(v);
+            network.sendTo(leaderId, wire);
+            if (leaderId == selfId) {
+                handleMessage(selfId, wire);
+            }
         } catch (IOException e) { e.printStackTrace(); }
     }
 

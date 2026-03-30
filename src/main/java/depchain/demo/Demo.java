@@ -11,6 +11,7 @@ import threshsig.GroupKey;
 import threshsig.KeyShare;
 
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,11 +48,26 @@ public class Demo {
         }
         Membership membership = new Membership(ids, addrs, pubs);
 
+        KeyPairGenerator ecGen = KeyPairGenerator.getInstance("EC");
+        ecGen.initialize(new ECGenParameterSpec("secp256r1"));
+        List<PublicKey> ecPubs = new ArrayList<>();
+        List<KeyPair> ecKeys = new ArrayList<>();
+        for (int i = 0; i < N; i++) {
+            KeyPair ekp = ecGen.generateKeyPair();
+            ecKeys.add(ekp);
+            ecPubs.add(ekp.getPublic());
+        }
+
         List<BlockchainMember> members = new ArrayList<>();
         List<NodeAddress> clientTargets = new ArrayList<>();
         for (int i = 0; i < N; i++) {
-            MultiProcessConfig.MemberConfig config = new MultiProcessConfig.MemberConfig(
-                    membership, aplKeys.get(i).getPrivate(), shares[i], groupKey);
+            MultiProcessConfig.MemberConfig config =
+                    new MultiProcessConfig.MemberConfig(
+                            membership,
+                            aplKeys.get(i).getPrivate(),
+                            shares[i],
+                            groupKey,
+                            MultiProcessConfig.linkMacForDemo(i, ecKeys.get(i).getPrivate(), ecPubs));
             BlockchainMember m = new BlockchainMember(i, membership, BASE_CONSENSUS + i, BASE_CLIENT + i, config, 2000L);
             members.add(m);
             clientTargets.add(new NodeAddress("127.0.0.1", BASE_CLIENT + i));

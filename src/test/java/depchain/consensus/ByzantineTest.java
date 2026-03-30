@@ -64,7 +64,7 @@ class ByzantineTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            ConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             if (i == 3)
                 net = new CorruptingConsensusNetwork(net);
             BlockchainService chain = new BlockchainService();

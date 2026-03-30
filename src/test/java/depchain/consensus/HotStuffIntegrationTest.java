@@ -66,7 +66,7 @@ class HotStuffIntegrationTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            APLConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            APLConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             BlockchainService chain = new BlockchainService();
             HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide);
             udps.add(udp);
@@ -136,7 +136,7 @@ class HotStuffIntegrationTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            APLConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            APLConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             BlockchainService chain = new BlockchainService();
             HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide);
             apls.add(apl);
@@ -216,7 +216,7 @@ class HotStuffIntegrationTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 5, 40);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            APLConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            APLConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             BlockchainService chain = new BlockchainService();
             HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide, viewTimeoutMs);
             apls.add(apl);

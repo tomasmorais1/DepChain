@@ -57,6 +57,14 @@ public final class BlockchainLedger {
 
         long timestamp = System.currentTimeMillis();
         String blockHash = computeBlockHash(lastBlockHash, nextHeight, timestamp, executed);
+        // Persist contract storage for the genesis-deployed IST Coin (and any other known contracts we support).
+        var contractStorageHex =
+            executor
+                .getEvm()
+                .snapshotSupportedContractStorage(
+                    executor.getContractRegistry(),
+                    worldState.asMapView().keySet()
+                );
         LedgerBlock block = new LedgerBlock(
             blockHash,
             lastBlockHash,
@@ -64,7 +72,8 @@ public final class BlockchainLedger {
             timestamp,
             executed,
             worldState.snapshot(),
-            executor.getContractRegistry().snapshotRuntimeHex()
+            executor.getContractRegistry().snapshotRuntimeHex(),
+            contractStorageHex
         );
         chain.add(block);
         lastBlockHash = blockHash;
@@ -78,6 +87,10 @@ public final class BlockchainLedger {
 
     public WorldState getWorldState() {
         return worldState;
+    }
+
+    public TransactionExecutor getExecutor() {
+        return executor;
     }
 
     private static String computeBlockHash(

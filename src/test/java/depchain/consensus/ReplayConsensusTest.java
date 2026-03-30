@@ -56,7 +56,7 @@ class ReplayConsensusTest {
         int basePort = 27000 + (int) (Math.random() * 1000);
         ConsensusTestHarness h = harness(n, basePort);
         for (int i = 0; i < n; i++) {
-            ConsensusNetwork net = new APLConsensusNetwork(h.apls.get(i), h.membership);
+            ConsensusNetwork net = new APLConsensusNetwork(i, h.apls.get(i), h.membership);
             net = new ReplayConsensusNetwork(net, true, false);
             h.addReplica(net, i);
         }
@@ -80,7 +80,7 @@ class ReplayConsensusTest {
         int basePort = 27100 + (int) (Math.random() * 1000);
         ConsensusTestHarness h = harness(n, basePort);
         for (int i = 0; i < n; i++) {
-            ConsensusNetwork net = new APLConsensusNetwork(h.apls.get(i), h.membership);
+            ConsensusNetwork net = new APLConsensusNetwork(i, h.apls.get(i), h.membership);
             net = new ReplayConsensusNetwork(net, false, true);
             h.addReplica(net, i);
         }

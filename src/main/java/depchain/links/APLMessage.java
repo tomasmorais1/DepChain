@@ -14,6 +14,9 @@ public final class APLMessage {
     public static final byte TYPE_DATA = 0;
     public static final byte TYPE_ACK = 1;
 
+    /** Prefix for HMAC-authenticated frames (pairwise ECDH-derived keys). */
+    private static final int HMAC_MAGIC = 0xDEADBCCF;
+
     private final byte type;
     private final int senderId;
     private final long messageId;
@@ -61,6 +64,21 @@ public final class APLMessage {
     public long getMessageId() { return messageId; }
     public byte[] getPayload() { return payload; }
 
+    /** HMAC frame: magic(4) BE + signedContentLen(4) + signedContent + mac(32). */
+    public static byte[] encodeHmac(byte[] signedContent, byte[] mac32) throws IOException {
+        if (mac32 == null || mac32.length != 32) {
+            throw new IllegalArgumentException("HMAC must be 32 bytes");
+        }
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream d = new DataOutputStream(out);
+        d.writeInt(HMAC_MAGIC);
+        d.writeInt(signedContent.length);
+        d.write(signedContent);
+        d.write(mac32);
+        d.flush();
+        return out.toByteArray();
+    }
+
     /** Full serialization: signedContentLength (4), signedContent, sigLength (2), signature. */
     public static byte[] encode(byte[] signedContent, byte[] signature) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -75,8 +93,38 @@ public final class APLMessage {
 
     /** Parse and verify: returns null if invalid or malformed. */
     public static Parsed parse(byte[] wire) {
-        if (wire == null || wire.length < 4 + 1 + 4 + 8 + 2) return null;
+        if (wire == null || wire.length < 4) return null;
         ByteBuffer b = ByteBuffer.wrap(wire);
+        int maybeMagic = b.getInt(0);
+        if (maybeMagic == HMAC_MAGIC) {
+            if (wire.length < 4 + 4 + 32) return null;
+            b.position(4);
+            int contentLen = b.getInt();
+            if (contentLen < 0 || b.remaining() < contentLen + 32) return null;
+            byte[] signedContent = new byte[contentLen];
+            b.get(signedContent);
+            byte[] mac = new byte[32];
+            b.get(mac);
+            ByteBuffer c = ByteBuffer.wrap(signedContent);
+            if (c.remaining() < 1 + 4 + 8) return null;
+            byte type = c.get();
+            int senderId = c.getInt();
+            long messageId = c.getLong();
+            byte[] payload;
+            if (type == TYPE_DATA) {
+                if (c.remaining() < 4) return null;
+                int payloadLen = c.getInt();
+                if (payloadLen < 0 || c.remaining() < payloadLen) return null;
+                payload = new byte[payloadLen];
+                c.get(payload);
+            } else if (type == TYPE_ACK) {
+                payload = new byte[0];
+            } else {
+                return null;
+            }
+            return new Parsed(type, senderId, messageId, payload, signedContent, mac, true);
+        }
+        b.position(0);
         int contentLen = b.getInt();
         if (contentLen < 0 || b.remaining() < contentLen + 2) return null;
         byte[] signedContent = new byte[contentLen];
@@ -102,7 +150,7 @@ public final class APLMessage {
         } else {
             return null;
         }
-        return new Parsed(type, senderId, messageId, payload, signedContent, signature);
+        return new Parsed(type, senderId, messageId, payload, signedContent, signature, false);
     }
 
     public static final class Parsed {
@@ -112,14 +160,24 @@ public final class APLMessage {
         private final byte[] payload;
         private final byte[] signedContent;
         private final byte[] signature;
+        private final boolean hmacMode;
 
-        Parsed(byte type, int senderId, long messageId, byte[] payload, byte[] signedContent, byte[] signature) {
+        Parsed(
+            byte type,
+            int senderId,
+            long messageId,
+            byte[] payload,
+            byte[] signedContent,
+            byte[] signature,
+            boolean hmacMode
+        ) {
             this.type = type;
             this.senderId = senderId;
             this.messageId = messageId;
             this.payload = payload;
             this.signedContent = signedContent;
             this.signature = signature;
+            this.hmacMode = hmacMode;
         }
 
         public byte getType() { return type; }
@@ -128,5 +186,6 @@ public final class APLMessage {
         public byte[] getPayload() { return payload; }
         public byte[] getSignedContent() { return signedContent; }
         public byte[] getSignature() { return signature; }
+        public boolean isHmacMode() { return hmacMode; }
     }
 }

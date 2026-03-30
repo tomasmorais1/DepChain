@@ -65,7 +65,7 @@ class IntrusiveNetworkTest {
             UdpTransport udp = new UdpTransport(basePort + i, 8192);
             FairLossLink fl = new FairLossLink(udp, 8, 30);
             AuthenticatedPerfectLink apl = new AuthenticatedPerfectLink(i, membership, fl, keys.get(i).getPrivate());
-            ConsensusNetwork net = new APLConsensusNetwork(apl, membership);
+            ConsensusNetwork net = new APLConsensusNetwork(i, apl, membership);
             net = new DropConsensusNetwork(net, dropProb);
             BlockchainService chain = new BlockchainService();
             HotStuffReplica replica = new HotStuffReplica(i, membership, net, shares[i], groupKey, chain::onDecide, 3000L);

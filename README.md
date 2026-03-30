@@ -18,7 +18,29 @@ The script compiles the project, generates a key file if it does not exist, star
 
 ### Manual 5 terminals
 
-Compile with `mvn compile`. Run once: `java -cp target/classes depchain.Main genconfig` (creates the key file). Then open 4 terminals and run `java -cp target/classes depchain.Main member 0`, `member 1`, `member 2`, `member 3` respectively. When all four show "Member X running", open a 5th terminal and run `java -cp target/classes depchain.Main client`.
+Compile with `mvn compile`. Run once: `java -cp target/classes depchain.Main genconfig` (writes **`depchain-multijvm.keys`** at the project root — see below). Then open 4 terminals and run `java -cp target/classes depchain.Main member 0`, `member 1`, `member 2`, `member 3` respectively. When all four show "Member X running", open a 5th terminal and run `java -cp target/classes depchain.Main client`, or **`java -cp target/classes depchain.Main interactive`** for a small command loop (IST `transfer` / `approve` / `transferFrom`, DepCoin queries, native transfer).
+
+### What is `depchain-multijvm.keys`?
+
+Single binary blob **generated locally** (not committed). Layout:
+
+1. **Quorum threshold key** (`GroupKey`) shared by all members.  
+2. Per member: **RSA public+private** (APL / membership), **threshold `KeyShare`**, and in current builds a trailing section with **P‑256 (`secp256r1`)** key pairs (for link-MAC ECDH).  
+3. The EC material enables **optional HMAC-SHA256 link authentication** with pairwise secrets derived via **ECDH** (`SHA-256(shared secret)` as MAC key). Older key files without that tail still work: members fall back to **RSA-signed** APL frames only.
+
+Regenerate anytime with `depchain.Main genconfig` (overwrites the file).
+
+### Mini demo script (interactive CLI, ~5 steps)
+
+With four members running and a fifth terminal on `interactive`:
+
+1. `balance ist 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` → expect a large balance (full IST supply to deployer in genesis bootstrap).  
+2. `transfer 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 10.0` → expect a non‑negative **chain index** (e.g. `0`).  
+3. `use 1` then `balance ist 0x70997970C51812dc3A010C7d01b50e0d17dc79C8` → expect **1000** smallest units (10.00 IST with 2 decimals).  
+4. `use 0` → `approve 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 5.0` → index ≥ 0.  
+5. `use 1` → `transferFrom 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 2.0` → Hardhat **account 1** (spender) moves IST from the owner above into **0x7099…**, within the approved allowance; re-check `balance ist` on both addresses.
+
+The in-JVM **`demo`** path uses the same HMAC link mode as multi-JVM when EC material is present in the key file; legacy tests that omit `linkMac` keep RSA-only links.
 
 ### DEMO / evidências para professor
 
@@ -56,7 +78,7 @@ Run **individual test classes** (useful to demonstrate specific behaviour):
 
 - **`src/main/resources/contracts/ISTCoin.creation.hex`** — bytecode de **deploy** (Solidity `bytecode`).
 - **`src/main/resources/contracts/ISTCoin.runtime.hex`** — bytecode **deployed** (`deployedBytecode`), usado na EVM após deploy.
-- **`src/main/resources/blockchain/genesis.json`** — a transação inicial `to: null` usa o **creation** hex do IST (deploy real, não stub).
+- **`src/main/resources/blockchain/genesis.json`** — a transação inicial `to: null` usa o **creation** hex do IST (deploy real, não stub). Opcionalmente podes acrescentar **`contracts`**: lista de `{ "address", "runtimeHex", "storage": { "0x<slot>": "0x<value>", ... } }` para fixar bytecode + storage de contratos em génesis sem transação de deploy.
 
 Para **recompilar** após alterar `ISTCoin.sol` (precisa de Node.js + `npx`):
 
@@ -93,5 +115,8 @@ Isto aproxima “maior taxa / maior prioridade” de forma consistente com a fó
 ### Persistência de blocos (`BlockJsonStore`)
 
 - Cada `LedgerBlock` gravado em JSON inclui o estado de contas (`balance` / `nonce`) e **`contractRuntimeHex`**: bytecode de **runtime** dos contratos deployados nesse bloco (para restaurar o `ContractRuntimeRegistry`).
-- O mundo Besu (`SimpleWorld`) **não** é serializado na íntegra (ex.: storage de mappings do IST). Para um nó “a frio”, a opção correta é **reexecutar** as transações desde o genesis ou alargar a persistência no Step 4.
-- Restauro mínimo após `load`: `ContractRuntimeRegistry.applyRuntimeHexSnapshot(block.getContractRuntimeHex())` e `BesuEvmHelper.applyCodesFromRegistry(registry)`.
+- Para cumprir o requisito do enunciado de “world state” por bloco, também persistimos **`contractStorageHex`** para contratos suportados (atualmente **IST Coin**): slots de storage relevantes (balances e allowances) em hex 32 bytes.
+- Restauro mínimo após `load`:
+  - `ContractRuntimeRegistry.applyRuntimeHexSnapshot(block.getContractRuntimeHex())`
+  - `BesuEvmHelper.applyCodesFromRegistry(registry)`
+  - `BesuEvmHelper.applyContractStorageHexSnapshot(contractAddr, block.getContractStorageHex().get(contractAddr))`

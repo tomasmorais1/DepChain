@@ -1,0 +1,186 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\title{DepChain: Dependable Permissioned Blockchain\\Stage 2 Report (Group 39)}
+
+\author{Guilherme Ribeiro \and Tomás Morais}
+\institute{Instituto Superior Técnico, University of Lisbon, Portugal\\
+IST student nos.\ 103562, 103619}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+DepChain is a simplified permissioned blockchain with Byzantine fault tolerance.
+Stage~1 focused on ordering client requests with Basic HotStuff~\cite{hotstuff} over authenticated links.
+Stage~2 refined the application semantics to support native cryptocurrency transfers (DepCoin),
+smart contract execution on a Besu EVM, an ERC-20 token contract (IST Coin) hardened against approval frontrunning,
+an Ethereum-like gas/fee model, block batching with a per-block gas cap, and JSON persistence of account state plus
+IST Coin contract storage slots. We strengthened the client interface and tests to tolerate Byzantine clients and Byzantine replies,
+while avoiding heavy full-chain sync for reads.
+\keywords{Byzantine fault tolerance \and HotStuff \and blockchain \and EVM \and gas accounting}
+\end{abstract}
+
+\section{Introduction}
+DepChain is a closed-membership blockchain service aiming for strong dependability guarantees in the presence of Byzantine faults.
+The membership (replicas and their public keys) is static and known before start, and clients may be Byzantine but cannot compromise honest keys.
+Stage~1 provided a BFT ordering layer based on Basic HotStuff and a secure client-to-replica request path.
+Stage~2 extends the application layer to support transactions, fees, and smart contracts as required by the Stage~2 specification.
+
+\section{System Overview}
+\subsection{Stage 1 recap (consensus + links)}
+DepChain uses a layered communication stack over UDP: a best-effort layer with retries (Fair Loss) and an Authenticated Perfect Link (APL).
+The default APL mode attaches an RSA signature over the logical payload (membership publishes RSA verification keys).
+As an alternative aligned with symmetric link authentication, replicas may derive per-neighbour secrets with ECDH on \texttt{secp256r1} (P-256)
+and authenticate frames with HMAC-SHA256 instead; our multi-process key file appends the EC key material needed for that mode.
+Both choices satisfy the design goal of forgery-resistant links among a closed membership; the report documents the option as a deliberate
+trade-off (asymmetric broadcasts vs.\ compact MAC tags) rather than as a correctness requirement unique to one primitive.
+Consensus is Basic HotStuff~\cite{hotstuff} with explicit \texttt{DECIDE} to define a single decision point, and quorum certificates (QC) built from $2f+1$ signatures.
+
+\subsection{Stage 2 architecture additions}
+Stage~2 introduces a transaction-aware blockchain ledger:
+(i) a genesis block that initializes accounts and deploys an ERC-20~\cite{erc20} contract (IST Coin),
+(ii) a world state tracking account balances and nonces,
+(iii) a transaction executor that applies native transfers and contract deploy/calls using Hyperledger Besu's EVM,
+and (iv) persistent storage for blocks using the same JSON spirit as genesis: each \texttt{LedgerBlock} includes hashes, executed
+transactions, account snapshots, deployed runtime bytecode, and (for IST Coin) relevant contract storage slots.
+
+\section{Transaction Model and Execution}
+\subsection{Account model}
+We follow the Ethereum account model with Externally Owned Accounts (EOA) and Contract Accounts.
+Each account has an address, DepCoin balance, and nonce. Contract accounts additionally hold EVM bytecode and contract storage (key-value store).
+
+\subsection{Transaction object}
+Transactions include sender (\texttt{from}), recipient (\texttt{to}, or null for deploy), \texttt{nonce}, \texttt{value} (native transfer),
+\texttt{gasPrice}, \texttt{gasLimit}, and \texttt{data} for contract deploy/call.
+Transactions are signed by clients and verified by replicas before being admitted to the verified pool, preventing Byzantine clients from forging
+operations on other accounts.
+
+\subsection{Gas and fee model}
+Each transaction is charged a fee deducted from the sender's DepCoin balance:
+\[
+\mathrm{fee} = \min(\mathrm{gasPrice}\cdot \mathrm{gasLimit},\ \mathrm{gasPrice}\cdot \mathrm{gasUsed})
+\]
+with \texttt{gasUsed} measured by the EVM for contract deploy/calls and set to an intrinsic constant for native transfers.
+If \texttt{gasUsed} exceeds \texttt{gasLimit}, the transaction is aborted but the gas spent is not refunded (the cap still applies).
+We guard against arithmetic overflow when computing $\mathrm{gasPrice}\cdot\mathrm{gasLimit}$.
+
+\subsection{Smart contract execution (Besu EVM)}
+Contract deployment and contract calls are executed using Hyperledger Besu~\cite{besu}.
+For a known IST Coin creation bytecode, replicas install the compiled runtime bytecode and seed initial balances.
+Contract addresses are derived deterministically from \texttt{(from, nonce)} using a stable project-specific function so that all replicas compute
+the same contract address.
+
+\section{Block Construction, Ordering, and Persistence}
+\subsection{Batching and fee-based ordering}
+For efficiency, leaders propose blocks containing multiple transactions. Transactions are ordered by \emph{fee offer},
+placing higher-fee transactions earlier in the block. Ties are broken to preserve per-sender nonce ordering to avoid proposing invalid sequences.
+
+\subsection{Per-block gas cap}
+To avoid oversized blocks and approximate an Ethereum-like block ``weight'', we enforce a maximum gas budget per block.
+The leader greedily selects transactions in priority order until adding the next transaction would exceed the gas cap, leaving the remainder in the mempool.
+
+\subsection{Genesis and JSON persistence}
+The system starts with a genesis JSON file that contains the initial world state (accounts, balances, nonces) and initial transactions (including
+the IST Coin deployment). An optional \texttt{contracts} array allows bootstrapping arbitrary contract accounts by supplying runtime bytecode
+and an explicit map of 32-byte storage slots (hex keys and values), without requiring a creation transaction in \texttt{transactions}.
+This generalises ``code + storage at genesis'' beyond the IST-only bootstrap path. Each subsequent block points to its predecessor and is written as JSON (\texttt{BlockJsonStore}), including:
+\begin{itemize}
+  \item \texttt{state}: balances and nonces for all known accounts at the block head;
+  \item \texttt{contractRuntimeHex}: contract address $\rightarrow$ runtime bytecode (hex) so replicas can reinstall code after load;
+  \item \texttt{contractStorageHex}: for supported contracts (currently IST Coin only), contract address $\rightarrow$ map of 32-byte storage slots to 32-byte values
+  (both as 64-character hex, no \texttt{0x} prefix).
+\end{itemize}
+
+\paragraph{IST Coin storage snapshot (pragmatic completeness).}
+Full Besu \texttt{SimpleWorld} serialization would be large. We persist IST Coin storage by enumerating only the ERC-20 mapping slots used in our Solidity
+(\texttt{\_balances} at slot~0 and \texttt{\_allowances} at slot~1) for a bounded set of known addresses (e.g., up to 32). Only non-zero slots are stored
+(implicit zero otherwise). After load, replicas reinstall code from \texttt{contractRuntimeHex} and apply stored slots from \texttt{contractStorageHex}.
+
+\paragraph{Relation to ``world state after the block'' (Stage~2 PDF).}
+This satisfies the assignment intent for the mandated IST Coin: the persisted block reflects post-execution native balances, contract code,
+and the token's mapping storage needed for correct \texttt{balanceOf} / allowance semantics after restart.
+
+\section{Client Protocol and Byzantine-Tolerant Reads}
+\subsection{Writes}
+Clients broadcast signed transactions to all replicas and accept completion after receiving $f{+}1$ identical replies, rather than waiting for all replicas.
+This prevents a Byzantine or slow replica from blocking progress.
+
+\subsection{Read-only queries (balance)}
+To support lightweight balance reads without heavy chain sync, we add a query request/response type.
+Query replies include a \texttt{returnData} field (e.g., for ERC-20 \texttt{balanceOf}) and metadata about the responding replica head
+(\texttt{headHeight}, \texttt{headHash}).
+Clients accept a query result after receiving $f{+}1$ identical replies (tolerating Byzantine replies).
+For read-after-write, clients may require replies from replicas whose head height is at least the decided index returned for the write.
+
+\section{IST Coin Contract and Approval Frontrunning Mitigation}
+The genesis deploys \texttt{ISTCoin}, an ERC-20 token with 2 decimals and a total supply of 100 million units.
+To mitigate approval frontrunning, we enforce a guarded approval rule: a non-zero allowance must be reset to zero before being set to a new non-zero value.
+This prevents the classic allowance-reduction race that allows withdrawing both old and new allowances.
+
+\section{Threat Analysis and Countermeasures}
+Table~\ref{tab:threats} summarizes key threats and defenses implemented across both stages.
+
+\begin{table}[t]
+\caption{Threats and protection mechanisms.}
+\label{tab:threats}
+\centering
+\begin{tabularx}{\textwidth}{@{}lX X@{}}
+\toprule
+\textbf{Threat} & \textbf{Description} & \textbf{Protection} \\
+\midrule
+Message forgery / impersonation & Inject/alter consensus or client messages over UDP & Signatures; verify before deduplication (APL). \\
+Replay / duplicate messages & Replaying old messages to confuse state & Per-sender message IDs; dedup after verification. \\
+Byzantine leader proposing invalid payloads & Leader proposes non-verified client operations & Replicas validate proposals using verified pool; reject invalid blocks. \\
+Byzantine clients forging transactions & Client submits tx spending others' funds & ECDSA signature verification; derive \texttt{from} from signature; enforce nonce. \\
+Overspending / negative balances & Execute tx that makes balances negative & Pre-checks on balances; fee charging rules; abort semantics. \\
+Approval frontrunning (ERC-20) & Allowance reduction race enables extra withdrawal & Guarded \texttt{approve}: require reset to zero before non-zero update. \\
+Byzantine query replies & Replica lies on balance query & Client waits for $f{+}1$ identical query replies; include head metadata. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Testing and Demonstration}
+We use JUnit (see \texttt{README.md}) to demonstrate correctness and Byzantine tolerance:
+\begin{itemize}
+  \item Consensus safety/liveness under faults: \texttt{HotStuffIntegrationTest}, \texttt{ByzantineTest}, \texttt{ReplicaFailingTest}, \texttt{IntrusiveNetworkTest}.
+  \item Byzantine clients/leaders and request validation: \texttt{ClientProtocolByzantineTest}, \texttt{ByzantineClientIntegrationTest}, \texttt{VerifiedBatchLeaderInjectionTest}.
+  \item IST Coin: frontrunning-resistant approvals (\texttt{ISTCoinBesuExecutionTest}) and storage JSON round-trip (\texttt{ContractStoragePersistenceTest}).
+  \item Gas-cap batching: \texttt{BlockBatcherTest}. Queries with $f{+}1$ identical replies: \texttt{ClientBalanceQueryIntegrationTest}, \texttt{ClientQueryByzantineReplyIntegrationTest},
+  and read-after-write \texttt{ClientBalanceReadAfterWriteIntegrationTest}.
+\end{itemize}
+We also provide a multi-JVM demo script (\texttt{run-multijvm-demo.sh}).
+
+\section{Dependability Guarantees}
+\paragraph{Safety.}
+With $n \ge 3f+1$ and at most $f$ Byzantine replicas, correct replicas decide the same sequence of blocks.
+Transactions respect authorization (only owners can spend) and nonces prevent replays.
+Account balances remain non-negative under the execution rules.
+
+\paragraph{Liveness.}
+Under partial synchrony, timeouts and view changes ensure progress: if the leader is faulty or slow, replicas move to the next view and a correct leader
+eventually drives decisions.
+Clients do not wait for all replicas; they accept completion on $f{+}1$ consistent replies.
+
+\section{Limitations}
+Our contract address derivation is project-specific (not Ethereum \texttt{CREATE}). Storage persistence is IST-focused and bounded; supporting arbitrary contracts
+would require a more general storage tracing or full replay. We rely on clear documentation and reproducible tests/demos as part of the submission quality.
+
+\section{Conclusion}
+DepChain Stage~2 extends the Stage~1 BFT ordering layer with transaction semantics, an EVM execution environment, Ethereum-like fee accounting,
+per-block gas limits, JSON persistence of accounts and IST Coin storage, and a hardened ERC-20 token deployed at genesis.
+The system includes lightweight read queries with Byzantine-tolerant aggregation and tests for frontrunning mitigation, storage persistence, and BFT/client faults.
+
+\bibliographystyle{splncs04}
+\bibliography{refs}
+
+\end{document}
+
