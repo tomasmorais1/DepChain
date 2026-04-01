@@ -2,6 +2,7 @@ package depchain.blockchain;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,7 +19,7 @@ public final class WorldState {
         WorldState state = new WorldState();
         for (Genesis.GenesisAccount account : genesis.getAccounts()) {
             state.accounts.put(
-                account.getAddress(),
+                normalizeAddr(account.getAddress()),
                 new AccountState(account.getBalance(), account.getNonce())
             );
         }
@@ -26,11 +27,23 @@ public final class WorldState {
     }
 
     public AccountState getOrCreate(String address) {
-        return accounts.computeIfAbsent(address, k -> new AccountState(0, 0));
+        return accounts.computeIfAbsent(normalizeAddr(address), k -> new AccountState(0, 0));
     }
 
     public AccountState get(String address) {
-        return accounts.get(address);
+        return accounts.get(normalizeAddr(address));
+    }
+
+    /** Ethereum-style addresses are case-insensitive; map keys are always 0x + lower hex. */
+    static String normalizeAddr(String a) {
+        if (a == null || a.isBlank()) {
+            return "";
+        }
+        String s = a.trim();
+        if (s.startsWith("0x") || s.startsWith("0X")) {
+            s = s.substring(2);
+        }
+        return "0x" + s.toLowerCase(Locale.ROOT);
     }
 
     public Map<String, AccountState> asMapView() {

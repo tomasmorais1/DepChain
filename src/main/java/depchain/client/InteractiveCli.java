@@ -54,7 +54,7 @@ public final class InteractiveCli {
 
         ConcurrentHashMap<String, AtomicLong> nonce = new ConcurrentHashMap<>();
         for (Genesis.GenesisAccount a : genesis.getAccounts()) {
-            nonce.put(normalizeAddr(a.getAddress()), new AtomicLong(a.getNonce()));
+            nonce.put(canonicalAddr(a.getAddress()), new AtomicLong(a.getNonce()));
         }
 
         Credentials[] creds = {
@@ -101,27 +101,27 @@ public final class InteractiveCli {
                         System.out.println("Now signing as " + creds[accountIndex].getAddress());
                     }
                 } else if ("balance".equals(cmd) && tok.length >= 3 && "dep".equalsIgnoreCase(tok[1])) {
-                    long b = client.queryDepCoinBalance(normalizeAddr(tok[2]));
+                    long b = client.queryDepCoinBalance(canonicalAddr(tok[2]));
                     System.out.println("DepCoin balance: " + b);
                 } else if ("balance".equals(cmd) && tok.length >= 3 && "ist".equalsIgnoreCase(tok[1])) {
                     BigInteger b =
-                            client.queryIstBalanceOf(istContract, normalizeAddr(tok[2]));
+                            client.queryIstBalanceOf(istContract, canonicalAddr(tok[2]));
                     System.out.println("IST smallest units: " + b + " (" + formatIstHuman(b) + " IST)");
                 } else if ("native".equals(cmd) && tok.length >= 3) {
-                    String from = normalizeAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
-                    String to = normalizeAddr(tok[1]);
+                    String from = canonicalAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
+                    String to = canonicalAddr(tok[1]);
                     long whole = Long.parseLong(tok[2]);
-                    long n = nonce.get(from).getAndIncrement();
+                    long n = nonce.computeIfAbsent(from, k -> new AtomicLong(0L)).getAndIncrement();
                     Transaction tx =
                             new Transaction(
                                     from, to, n, whole, GAS_PRICE, GAS_LIMIT_NATIVE, null);
                     int idx = client.appendTransaction(tx);
                     System.out.println("append native tx -> chain index " + idx);
                 } else if ("transfer".equals(cmd) && tok.length >= 3) {
-                    String from = normalizeAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
-                    String to = normalizeAddr(tok[1]);
+                    String from = canonicalAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
+                    String to = canonicalAddr(tok[1]);
                     BigInteger amount = parseIstHumanToUnits(tok[2]);
-                    long n = nonce.get(from).getAndIncrement();
+                    long n = nonce.computeIfAbsent(from, k -> new AtomicLong(0L)).getAndIncrement();
                     byte[] data = IstCoinCalldata.transfer(to, amount);
                     Transaction tx =
                             new Transaction(
@@ -129,10 +129,10 @@ public final class InteractiveCli {
                     int idx = client.appendTransaction(tx);
                     System.out.println("IST transfer -> index " + idx);
                 } else if ("approve".equals(cmd) && tok.length >= 3) {
-                    String from = normalizeAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
-                    String spender = normalizeAddr(tok[1]);
+                    String from = canonicalAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
+                    String spender = canonicalAddr(tok[1]);
                     BigInteger amount = parseIstHumanToUnits(tok[2]);
-                    long n = nonce.get(from).getAndIncrement();
+                    long n = nonce.computeIfAbsent(from, k -> new AtomicLong(0L)).getAndIncrement();
                     byte[] data = IstCoinCalldata.approve(spender, amount);
                     Transaction tx =
                             new Transaction(
@@ -140,11 +140,11 @@ public final class InteractiveCli {
                     int idx = client.appendTransaction(tx);
                     System.out.println("IST approve -> index " + idx);
                 } else if ("transferfrom".equals(cmd) && tok.length >= 4) {
-                    String spender = normalizeAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
-                    String holder = normalizeAddr(tok[1]);
-                    String to = normalizeAddr(tok[2]);
+                    String spender = canonicalAddr(Objects.requireNonNull(creds[accountIndex].getAddress()));
+                    String holder = canonicalAddr(tok[1]);
+                    String to = canonicalAddr(tok[2]);
                     BigInteger amount = parseIstHumanToUnits(tok[3]);
-                    long n = nonce.get(spender).getAndIncrement();
+                    long n = nonce.computeIfAbsent(spender, k -> new AtomicLong(0L)).getAndIncrement();
                     byte[] data = IstCoinCalldata.transferFrom(holder, to, amount);
                     Transaction tx =
                             new Transaction(
@@ -172,11 +172,15 @@ public final class InteractiveCli {
         return new DepChainClient(targets, listenPort, bind, null, cred, 20000L, 5);
     }
 
-    private static String normalizeAddr(String a) {
-        if (a == null || !a.startsWith("0x")) {
-            return "0x" + org.web3j.utils.Numeric.cleanHexPrefix(a);
+    /**
+     * Lowercase 0x-prefixed hex so genesis JSON, EIP-55 from web3j, and user input share one map key.
+     */
+    private static String canonicalAddr(String a) {
+        if (a == null || a.isBlank()) {
+            return "";
         }
-        return a;
+        String hex = org.web3j.utils.Numeric.cleanHexPrefix(a.trim());
+        return "0x" + hex.toLowerCase(Locale.ROOT);
     }
 
     private static BigInteger parseIstHumanToUnits(String human) {

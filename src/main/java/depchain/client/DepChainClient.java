@@ -375,11 +375,12 @@ public final class DepChainClient implements AutoCloseable {
                 }
                 ClientProtocol.Response resp = ClientProtocol.parseResponse(copy);
                 if (resp != null) {
-                    System.err.println("[client] recv response requestId=" + resp.getRequestId() + " from "
-                            + p.getSocketAddress());
                     ResponseAccumulator acc = pending.get(resp.getRequestId());
-                    if (acc != null)
+                    if (acc != null) {
+                        System.err.println("[client] recv response requestId=" + resp.getRequestId() + " from "
+                                + p.getSocketAddress());
                         acc.add(resp);
+                    }
                 }
             } catch (IOException e) {
                 if (!closed)
