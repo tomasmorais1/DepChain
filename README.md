@@ -18,7 +18,38 @@ The script compiles the project, generates a key file if it does not exist, star
 
 ### Manual 5 terminals
 
-Compile with `mvn compile`. Run once: `java -cp target/classes depchain.Main genconfig` (writes **`depchain-multijvm.keys`** at the project root — see below). Then open 4 terminals and run `java -cp target/classes depchain.Main member 0`, `member 1`, `member 2`, `member 3` respectively. When all four show "Member X running", open a 5th terminal and run `java -cp target/classes depchain.Main client`, or **`java -cp target/classes depchain.Main interactive`** for a small command loop (IST `transfer` / `approve` / `transferFrom`, DepCoin queries, native transfer).
+**Use Maven’s classpath** (Stage 2 pulls in web3j, Besu, etc.; plain `java -cp target/classes` will fail with `NoClassDefFoundError` for `org.web3j.crypto.Credentials`):
+
+```bash
+mvn -q compile
+mvn -q exec:java -Dexec.args="genconfig"
+```
+
+That writes **`depchain-multijvm.keys`** at the project root (see below). Then open 4 terminals:
+
+```bash
+mvn -q exec:java -Dexec.args="member 0"   # and 1, 2, 3 in the other terminals
+```
+
+When all four show `Member X running`, in a 5th terminal:
+
+```bash
+mvn -q exec:java -Dexec.args="client"
+```
+
+or **`mvn -q exec:java -Dexec.args="interactive"`** for the IST / DepCoin REPL (`transfer` / `approve` / `transferFrom`, balances, native transfer).
+
+**Alternative (same JVM, full classpath):** after `mvn compile`, run `mvn -q dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/cp.txt`, then `java -cp "target/classes:$(cat target/cp.txt)" depchain.Main client` (same pattern for `member` / `interactive`).
+
+### Client shows `[client] timeout` / retries
+
+The client talks to members over **UDP** on **30100–30103** and waits until **f+1** replicas reply after a block is decided. A timeout almost always means:
+
+1. **Not all four members are running** — you need `member 0` … `member 3` at the same time (and HotStuff needs a quorum to commit).
+2. **Members were started with `java -cp target/classes` only** — they can fail at startup (`NoClassDefFoundError`); use `mvn exec:java` or the full classpath as above.
+3. **Another process already uses UDP 30200** (e.g. a second `client` / `interactive`) — only one listener on that port.
+
+Check listening UDP ports (macOS/Linux): `lsof -nP -iUDP:30100` (repeat for 30101–30103). You should see a `java` process for each member.
 
 ### What is `depchain-multijvm.keys`?
 

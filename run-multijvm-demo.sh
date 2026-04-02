@@ -9,10 +9,11 @@ cd "$(dirname "$0")"
 echo "=== DepChain multi-JVM demo (automatic) ==="
 echo ""
 
-# 1. Compile
+# 1. Compile + runtime classpath (Besu, web3j, etc. are not in target/classes alone)
 echo "[1/4] Compiling..."
 mvn -q compile
-CP="target/classes"
+mvn -q dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/cp.txt
+CP="target/classes:$(cat target/cp.txt)"
 KEY_FILE="depchain-multijvm.keys"
 
 # 2. Generate keys if they do not exist

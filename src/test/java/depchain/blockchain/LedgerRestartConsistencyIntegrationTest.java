@@ -24,6 +24,8 @@ class LedgerRestartConsistencyIntegrationTest {
     void persistedBlock_canReconstructCommittedStateAfterRestart() throws Exception {
         String alice = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
         String bob = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+        String aliceKey = WorldState.normalizeAddr(alice);
+        String bobKey = WorldState.normalizeAddr(bob);
 
         Genesis genesis = new Genesis(
             "genesis-hash",
@@ -83,20 +85,20 @@ class LedgerRestartConsistencyIntegrationTest {
         }
 
         assertEquals(
-            loaded.getState().get(alice).getBalance(),
-            restoredWorld.get(alice).getBalance()
+            loaded.getState().get(aliceKey).getBalance(),
+            restoredWorld.get(aliceKey).getBalance()
         );
         assertEquals(
-            loaded.getState().get(alice).getNonce(),
-            restoredWorld.get(alice).getNonce()
+            loaded.getState().get(aliceKey).getNonce(),
+            restoredWorld.get(aliceKey).getNonce()
         );
         assertEquals(
-            loaded.getState().get(bob).getBalance(),
-            restoredWorld.get(bob).getBalance()
+            loaded.getState().get(bobKey).getBalance(),
+            restoredWorld.get(bobKey).getBalance()
         );
         assertEquals(
-            loaded.getState().get(bob).getNonce(),
-            restoredWorld.get(bob).getNonce()
+            loaded.getState().get(bobKey).getNonce(),
+            restoredWorld.get(bobKey).getNonce()
         );
 
         assertTrue(restoredExecutor.getContractRegistry().contains(contract));

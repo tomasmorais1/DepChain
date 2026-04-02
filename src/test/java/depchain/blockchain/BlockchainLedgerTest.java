@@ -69,9 +69,10 @@ class BlockchainLedgerTest {
         assertEquals(block.getPreviousBlockHash(), loaded.getPreviousBlockHash());
         assertEquals(block.getHeight(), loaded.getHeight());
         assertEquals(block.getTransactions().size(), loaded.getTransactions().size());
+        String acct0 = WorldState.normalizeAddr("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
         assertEquals(
-            block.getState().get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance(),
-            loaded.getState().get("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266").getBalance()
+            block.getState().get(acct0).getBalance(),
+            loaded.getState().get(acct0).getBalance()
         );
         assertTrue(block.getContractRuntimeHex().isEmpty());
         assertTrue(loaded.getContractRuntimeHex().isEmpty());

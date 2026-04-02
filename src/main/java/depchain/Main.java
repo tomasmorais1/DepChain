@@ -55,7 +55,7 @@ public class Main {
         java.nio.file.Path keyFile = Paths.get(MultiProcessConfig.DEFAULT_KEY_FILE);
         if (!java.nio.file.Files.exists(keyFile)) {
             System.err.println("Key file not found: " + keyFile.toAbsolutePath());
-            System.err.println("Run once:  java -cp target/classes depchain.Main genconfig");
+            System.err.println("Run once:  mvn -q exec:java -Dexec.args=\"genconfig\"");
             System.exit(1);
         }
         MultiProcessConfig.MemberConfig config = MultiProcessConfig.loadMemberFromFile(keyFile, id);
@@ -80,6 +80,9 @@ public class Main {
 
     private static void runClient() throws Exception {
         List<NodeAddress> targets = MultiProcessConfig.getClientTargets();
+        System.err.println("DepChain client: need all 4 members listening on UDP " + MultiProcessConfig.BASE_CLIENT + ".."
+                + (MultiProcessConfig.BASE_CLIENT + MultiProcessConfig.N - 1) + " (mvn -q exec:java -Dexec.args=\"member <id>\").");
+        System.err.println("If you see timeouts, members are missing, crashed, or not using the Maven classpath.");
         System.out.println("DepChain client: waiting 4s for members to be ready...");
         Thread.sleep(4000);
         InetSocketAddress bindAddr = new InetSocketAddress("127.0.0.1", MultiProcessConfig.CLIENT_LISTEN);
@@ -119,13 +122,13 @@ public class Main {
         java.nio.file.Path path = Paths.get(MultiProcessConfig.DEFAULT_KEY_FILE);
         MultiProcessConfig.writeKeysToFile(path);
         System.out.println("Config written to " + path.toAbsolutePath());
-        System.out.println("Now run in 4 separate terminals:");
-        System.out.println("  java -cp target/classes depchain.Main member 0");
-        System.out.println("  java -cp target/classes depchain.Main member 1");
-        System.out.println("  java -cp target/classes depchain.Main member 2");
-        System.out.println("  java -cp target/classes depchain.Main member 3");
+        System.out.println("Now run in 4 separate terminals (Maven classpath includes web3j/Besu):");
+        System.out.println("  mvn -q exec:java -Dexec.args=\"member 0\"");
+        System.out.println("  mvn -q exec:java -Dexec.args=\"member 1\"");
+        System.out.println("  mvn -q exec:java -Dexec.args=\"member 2\"");
+        System.out.println("  mvn -q exec:java -Dexec.args=\"member 3\"");
         System.out.println("Then in a 5th terminal:");
-        System.out.println("  java -cp target/classes depchain.Main client");
+        System.out.println("  mvn -q exec:java -Dexec.args=\"client\"");
     }
 
     private static void printUsage() {
@@ -135,6 +138,7 @@ public class Main {
         System.err.println("  java depchain.Main member <0|1|2|3> -- run one member (after genconfig)");
         System.err.println("  java depchain.Main client           -- run client only (5th terminal)");
         System.err.println("  java depchain.Main interactive      -- IST/DepCoin REPL (after members up)");
-        System.err.println("Or: mvn exec:java -Dexec.mainClass=depchain.demo.Demo");
+        System.err.println("Or: mvn -q exec:java -Dexec.args=\"client\"   (needs full Maven classpath)");
+        System.err.println("    mvn -q exec:java -Dexec.mainClass=depchain.demo.Demo   -- in-JVM demo");
     }
 }
