@@ -1,4 +1,4 @@
-# DepChain — Stage 1
+# DepChain — Stage 2
 
 **Requirements:** **Java 21** (Besu EVM / bytecode), Maven 3.6+
 
@@ -21,7 +21,9 @@ The script compiles the project, generates a key file if it does not exist, star
 **Use Maven’s classpath** (Stage 2 pulls in web3j, Besu, etc.; plain `java -cp target/classes` will fail with `NoClassDefFoundError` for `org.web3j.crypto.Credentials`):
 
 ```bash
-mvn -q compile
+cd /path/to/DepChain
+mvn -version   # must show Java 21.x
+mvn -q clean compile
 mvn -q exec:java -Dexec.args="genconfig"
 ```
 
@@ -38,6 +40,8 @@ mvn -q exec:java -Dexec.args="client"
 ```
 
 or **`mvn -q exec:java -Dexec.args="interactive"`** for the IST / DepCoin REPL (`transfer` / `approve` / `transferFrom`, balances, native transfer).
+
+**Important:** `use`, `balance`, `transfer`, etc. are **commands inside the REPL** (after the `depchain>` prompt). If you type them in your shell (zsh), you will get `zsh: command not found`.
 
 **Alternative (same JVM, full classpath):** after `mvn compile`, run `mvn -q dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/cp.txt`, then `java -cp "target/classes:$(cat target/cp.txt)" depchain.Main client` (same pattern for `member` / `interactive`).
 
@@ -65,11 +69,20 @@ Regenerate anytime with `depchain.Main genconfig` (overwrites the file).
 
 With four members running and a fifth terminal on `interactive`:
 
-1. `balance ist 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` → expect a large balance (full IST supply to deployer in genesis bootstrap).  
-2. `transfer 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 10.0` → expect a non‑negative **chain index** (e.g. `0`).  
-3. `use 1` then `balance ist 0x70997970C51812dc3A010C7d01b50e0d17dc79C8` → expect **1000** smallest units (10.00 IST with 2 decimals).  
-4. `use 0` → `approve 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 5.0` → index ≥ 0.  
-5. `use 1` → `transferFrom 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 2.0` → Hardhat **account 1** (spender) moves IST from the owner above into **0x7099…**, within the approved allowance; re-check `balance ist` on both addresses.
+Addresses used below are the built-in demo accounts (Hardhat-style):
+
+- **Account 0 (owner, default signer)**: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`
+- **Account 1 (spender/receiver)**: `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`
+
+Type one command at a time after `depchain>`:
+
+1. `use 0`  
+   `balance dep 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` → expect a positive DepCoin balance (to pay fees).  
+   `balance ist 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` → expect a large balance (IST supply in genesis).
+2. `transfer 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 10.0` → expect `IST transfer -> index N` with \(N \ge 0\).  
+3. `balance ist 0x70997970C51812dc3A010C7d01b50e0d17dc79C8` → expect `10.00 IST` (2 decimals).  
+4. `use 0` → `approve 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 5.0` → expect `IST approve -> index N`.  
+5. `use 1` → `transferFrom 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 2.0` → expect `IST transferFrom -> index N`. Then `balance ist 0x7099...` should be `12.00 IST`.
 
 The in-JVM **`demo`** path uses the same HMAC link mode as multi-JVM when EC material is present in the key file; legacy tests that omit `linkMac` keep RSA-only links.
 

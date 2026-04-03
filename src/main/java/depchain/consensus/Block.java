@@ -4,9 +4,6 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Objects;
 
-/**
- * A single block: payload (e.g. string to append). For Stage 1 one string per block.
- */
 public final class Block implements Serializable {
     private final long viewNumber;
     private final byte[] payload;
@@ -16,8 +13,13 @@ public final class Block implements Serializable {
         this.payload = payload == null ? new byte[0] : payload.clone();
     }
 
-    public long getViewNumber() { return viewNumber; }
-    public byte[] getPayload() { return payload; }
+    public long getViewNumber() {
+        return viewNumber;
+    }
+
+    public byte[] getPayload() {
+        return payload;
+    }
 
     /** Stable identity for this block (for lock/voting). */
     public byte[] getBlockHash() {
@@ -36,8 +38,10 @@ public final class Block implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Block block = (Block) o;
         return viewNumber == block.viewNumber && Arrays.equals(payload, block.payload);
     }
