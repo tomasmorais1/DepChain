@@ -5,10 +5,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
 
-/**
- * Stage 2 / Step 3 transaction model.
- * Supports native transfers and contract calls (when {@code data} is non-empty).
- */
+/** User transaction: native transfer and/or contract {@code data}. */
 public final class Transaction implements Serializable {
     private final String from;
     private final String to;
@@ -19,21 +16,13 @@ public final class Transaction implements Serializable {
     private final byte[] data;
 
     /**
-     * Block ordering before execution: higher {@linkplain #maxFeeOffer() max fee offer} first.
-     * <p>
-     * The enunciado charges {@code min(gas_price * gas_limit, gas_price * gas_used)}; before
-     * execution {@code gas_used} is unknown, so we use {@code gas_price * gas_limit} as the
-     * user-declared upper bound on native DepCoin fee — a standard proxy for “willingness to pay”.
-     * Tie-break: {@link #getNonce()} (applied in {@code BlockchainLedger.appendBlock}).
+     * Proposal order: higher {@link #maxFeeOffer()} first (proxy for fee before {@code gas_used} is known).
+     * Tie-break: {@link #getNonce()} in {@code BlockchainLedger.appendBlock}.
      */
     public static final Comparator<Transaction> FEE_PRIORITY =
         Comparator.comparingLong(Transaction::maxFeeOffer).reversed();
 
-    /**
-     * Upper bound on fee in DepCoin smallest units: {@code gasPrice * gasLimit}.
-     * Matches the maximum of {@code gas_price * gas_limit} in the fee formula before {@code gas_used} is known.
-     * On overflow, returns {@link Long#MAX_VALUE} so the transaction sorts first (extreme bids).
-     */
+    /** {@code gasPrice * gasLimit} (fee cap before execution); on overflow, {@link Long#MAX_VALUE}. */
     public long maxFeeOffer() {
         try {
             return Math.multiplyExact(gasPrice, gasLimit);

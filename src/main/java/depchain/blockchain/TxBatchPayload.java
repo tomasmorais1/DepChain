@@ -8,12 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Deterministic wire payload for consensus blocks carrying client transactions.
- *
- * <p>Stage 4 bridge format: this wraps one or more client commands as structured items
- * (requestId + command), replacing the previous ad-hoc payload layout.
- */
+/** Wire encoding for a proposed block: ordered list of (requestId, command) items. */
 public final class TxBatchPayload {
     private static final int MAGIC = 0x44545842; // "DTXB"
     private static final short VERSION = 1;
@@ -25,7 +20,6 @@ public final class TxBatchPayload {
     }
 
     public List<TxItem> getItems() {
-        // List order is the decided execution order.
         return Collections.unmodifiableList(items);
     }
 

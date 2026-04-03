@@ -57,7 +57,6 @@ public final class BlockchainLedger {
 
         long timestamp = System.currentTimeMillis();
         String blockHash = computeBlockHash(lastBlockHash, nextHeight, timestamp, executed);
-        // Persist contract storage for the genesis-deployed IST Coin (and any other known contracts we support).
         var contractStorageHex =
             executor
                 .getEvm()

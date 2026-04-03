@@ -17,11 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.web3j.crypto.Credentials;
 
-/**
- * Small interactive client (multi-JVM setup): DepCoin and IST Coin commands after members are up.
- *
- * <p>Run: {@code java -cp target/classes depchain.Main interactive}
- */
+/** REPL for DepCoin / IST against running members (see README). */
 public final class InteractiveCli {
 
     private static final int IST_DECIMALS = 2;

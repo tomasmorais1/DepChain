@@ -10,14 +10,8 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Verified pending transactions waiting to be proposed in a block.
- *
- * Invariants:
- * - at most one pending tx per requestId
- * - at most one pending tx per (sender, nonce)
- * - block eligibility is based on the next expected nonce for each account
- *
- * This class does NOT execute transactions and does NOT mutate committed state.
+ * Verified txs pending proposal: unique {@code requestId} and per-(sender,nonce);
+ * eligibility follows next committed nonce per account. Does not execute or commit.
  */
 public final class Mempool {
 
@@ -31,12 +25,7 @@ public final class Mempool {
     /** Monotonic sequence for deterministic tie-breaking. */
     private long nextArrivalSequence = 0L;
 
-    /**
-     * Adds a verified transaction to the mempool.
-     *
-     * @return the inserted pending transaction, or {@code null} if the tx is a duplicate
-     *     requestId / duplicate (sender,nonce) / invalid input.
-     */
+    /** @return inserted pending, or {@code null} if duplicate or invalid */
     public synchronized PendingTransaction addVerifiedTransaction(
         long requestId,
         String clientId,

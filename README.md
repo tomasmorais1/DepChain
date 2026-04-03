@@ -4,9 +4,9 @@
 
 ---
 
-## How to run the demos
+## Demos
 
-### Main demo (5 separate JVMs, one command)
+### 1. Automatic multi-JVM demo
 
 From the **project root**:
 
@@ -14,11 +14,14 @@ From the **project root**:
 ./run-multijvm-demo.sh
 ```
 
-The script compiles the project, generates a key file if it does not exist, starts 4 members in the background, runs the client (you see the client output in the terminal: 3 appends with indices 0, 1, 2), then stops the members. No need to open multiple terminals.
+It runs `mvn compile`, builds a runtime classpath, creates **`depchain-multijvm.keys`** if missing, starts **four** member processes in the background (consensus UDP **30000–30003**, client-facing UDP **30100–30103**), then runs the **batch client** in the foreground. That client submits **three** fixed native DepCoin transfers (Hardhat account 0 → account 1, nonces 0–2) and prints the decided chain indices. Finally it stops the members. Logs: `member-0.log` … `member-3.log`.
 
-### Manual 5 terminals
 
-**Use Maven’s classpath** (Stage 2 pulls in web3j, Besu, etc.; plain `java -cp target/classes` will fail with `NoClassDefFoundError` for `org.web3j.crypto.Credentials`):
+### 2. Manual multi-JVM (five terminals)
+
+You must use **Maven’s full classpath** (Stage 2 depends on web3j, Besu, etc.). Plain `java -cp target/classes …` alone will fail with `NoClassDefFoundError` (e.g. `org.web3j.crypto.Credentials`).
+
+**Once — generate keys** (writes **`depchain-multijvm.keys`** at the repo root):
 
 ```bash
 cd /path/to/DepChain
@@ -27,140 +30,80 @@ mvn -q clean compile
 mvn -q exec:java -Dexec.args="genconfig"
 ```
 
-That writes **`depchain-multijvm.keys`** at the project root (see below). Then open 4 terminals:
+**Four terminals — one member each:**
 
 ```bash
-mvn -q exec:java -Dexec.args="member 0"   # and 1, 2, 3 in the other terminals
+mvn -q exec:java -Dexec.args="member 0"
+mvn -q exec:java -Dexec.args="member 1"
+mvn -q exec:java -Dexec.args="member 2"
+mvn -q exec:java -Dexec.args="member 3"
 ```
 
-When all four show `Member X running`, in a 5th terminal:
+Wait until all show `Member X running (consensus port …, client port …)`.
 
-```bash
-mvn -q exec:java -Dexec.args="client"
-```
+**Fifth terminal — choose one:**
 
-or **`mvn -q exec:java -Dexec.args="interactive"`** for the IST / DepCoin REPL (`transfer` / `approve` / `transferFrom`, balances, native transfer).
+| Mode | Command | Purpose |
+|------|---------|---------|
+| **Batch client** | `mvn -q exec:java -Dexec.args="client"` | Sends the same 3 scripted DepCoin txs as the shell script; binds UDP **30200**. |
+| **Interactive REPL** | `mvn -q exec:java -Dexec.args="interactive"` | IST / DepCoin commands (see next section); binds UDP **30217** by default. |
 
-**Important:** `use`, `balance`, `transfer`, etc. are **commands inside the REPL** (after the `depchain>` prompt). If you type them in your shell (zsh), you will get `zsh: command not found`.
+## Interactive REPL (`interactive`)
 
-**Alternative (same JVM, full classpath):** after `mvn compile`, run `mvn -q dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/cp.txt`, then `java -cp "target/classes:$(cat target/cp.txt)" depchain.Main client` (same pattern for `member` / `interactive`).
+Use this after the **four members** are up.
 
-### Client shows `[client] timeout` / retries
+**Startup:** waits ~4s, prints the derived **IST contract address** (from genesis deployer + nonce 0), then accepts input.
 
-The client talks to members over **UDP** on **30100–30103** and waits until **f+1** replicas reply after a block is decided. A timeout almost always means:
+**Signing identity:** genesis includes two Hardhat-style EOAs. Use **`use 0`** or **`use 1`** to sign as that account (new `DepChainClient` with the matching private key). Only **0** and **1** are valid.
 
-1. **Not all four members are running** — you need `member 0` … `member 3` at the same time (and HotStuff needs a quorum to commit).
-2. **Members were started with `java -cp target/classes` only** — they can fail at startup (`NoClassDefFoundError`); use `mvn exec:java` or the full classpath as above.
-3. **Another process already uses UDP 30200** (e.g. a second `client` / `interactive`) — only one listener on that port.
+**Commands:**
 
-Check listening UDP ports (macOS/Linux): `lsof -nP -iUDP:30100` (repeat for 30101–30103). You should see a `java` process for each member.
+| Command | Meaning |
+|---------|---------|
+| `help` | Short built-in help. |
+| `use 0` / `use 1` | Switch active signer (account 0 or 1). |
+| `balance dep <addr>` | Native **DepCoin** balance (integer, genesis units). |
+| `balance ist <addr>` | **IST** token balance (smallest units + human IST with 2 decimals). |
+| `native <to> <whole>` | Native DepCoin transfer of **whole** units from the current signer. |
+| `transfer <to> <amount>` | IST `transfer` — `amount` like `10.0` (2 decimals). |
+| `approve <spender> <amount>` | IST `approve` (after mitigations: non-zero → non-zero may require allowance reset; see tests). |
+| `transferFrom <from> <to> <amount>` | IST `transferFrom` — current signer must be the **approved spender** (typical flow: `use 1` to act as spender). |
+| `quit` / `exit` | Leave the REPL. |
 
-### What is `depchain-multijvm.keys`?
+**Suggested walkthrough (with members running):**
 
-Single binary blob **generated locally** (not committed). Layout:
+Demo accounts: **0** = `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`, **1** = `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`.
 
-1. **Quorum threshold key** (`GroupKey`) shared by all members.  
-2. Per member: **RSA public+private** (APL / membership), **threshold `KeyShare`**, and in current builds a trailing section with **P‑256 (`secp256r1`)** key pairs (for link-MAC ECDH).  
-3. The EC material enables **optional HMAC-SHA256 link authentication** with pairwise secrets derived via **ECDH** (`SHA-256(shared secret)` as MAC key). Older key files without that tail still work: members fall back to **RSA-signed** APL frames only.
-
-Regenerate anytime with `depchain.Main genconfig` (overwrites the file).
-
-### Mini demo script (interactive CLI, ~5 steps)
-
-With four members running and a fifth terminal on `interactive`:
-
-Addresses used below are the built-in demo accounts (Hardhat-style):
-
-- **Account 0 (owner, default signer)**: `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`
-- **Account 1 (spender/receiver)**: `0x70997970C51812dc3A010C7d01b50e0d17dc79C8`
-
-Type one command at a time after `depchain>`:
-
-1. `use 0`  
-   `balance dep 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` → expect a positive DepCoin balance (to pay fees).  
-   `balance ist 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` → expect a large balance (IST supply in genesis).
+1. `use 0` → `balance dep 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (positive; pays gas) → `balance ist 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` (large; IST minted to deployer in genesis).  
 2. `transfer 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 10.0` → expect `IST transfer -> index N` with \(N \ge 0\).  
-3. `balance ist 0x70997970C51812dc3A010C7d01b50e0d17dc79C8` → expect `10.00 IST` (2 decimals).  
-4. `use 0` → `approve 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 5.0` → expect `IST approve -> index N`.  
-5. `use 1` → `transferFrom 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 2.0` → expect `IST transferFrom -> index N`. Then `balance ist 0x7099...` should be `12.00 IST`.
-
-The in-JVM **`demo`** path uses the same HMAC link mode as multi-JVM when EC material is present in the key file; legacy tests that omit `linkMac` keep RSA-only links.
-
-### DEMO / evidências para professor
-
-- **Caminho rápido:** `./run-multijvm-demo.sh` (4 membros + cliente, um comando).
-- **Bizantinos / frontrunning:** correr a bateria Step 5 com Maven — lista de classes e comandos em **`STAGE2-STEP5-TESTS.md`** (secção “How to run the Step 5–focused suite”). Exemplo:
-  ```bash
-  mvn test -Dtest=ClientProtocolByzantineTest,VerifiedBatchLeaderInjectionTest,ByzantineClientIntegrationTest,ByzantineTest,ReplicaFailingTest,ISTCoinBesuExecutionTest
-  ```
-- **Nota:** cenários interactivos estilo consola (como noutros grupos) **não são obrigatórios**; os **testes** cobrem as propriedades relevantes do enunciado (incl. tolerância a réplicas/clientes bizantinos e mitigação de approval frontrunning no IST Coin).
+3. `balance ist 0x7099…79C8` → expect **10.00 IST** (1000 smallest units).  
+4. `use 0` → `approve 0x7099…79C8 5.0` → allowance for account 1 as spender.  
+5. `use 1` → `transferFrom 0xf39F…92266 0x7099…79C8 2.0` → spender pulls IST; re-check `balance ist` on both addresses as needed.
 
 ---
 
-## How to run the tests
+## Tests
 
-Run **all tests**:
+### Full suite
 
 ```bash
 mvn clean test
 ```
 
-Run **individual test classes** (useful to demonstrate specific behaviour):
+### Stage 2
+These classes focus on invalid/forged client traffic, leader/mempool integration, faulty replicas, and Besu-side IST `approve` rules:
+
+```bash
+mvn test -Dtest=ClientProtocolByzantineTest,VerifiedBatchLeaderInjectionTest,ByzantineClientIntegrationTest,ByzantineTest,ReplicaFailingTest,ISTCoinBesuExecutionTest
+```
+
+### Individual test classes (examples)
 
 | Command | What it exercises |
 |--------|--------------------|
 | `mvn test -Dtest=AuthenticatedPerfectLinkTest` | APL: send/receive, reject corrupted messages, deduplication. |
-| `mvn test -Dtest=HotStuffIntegrationTest` | Consensus: 4 replicas decide blocks; view change after leader timeout. |
-| `mvn test -Dtest=ByzantineTest` | One replica sends invalid votes; correct replicas still decide (Byzantine tolerance). |
-| `mvn test -Dtest=IntrusiveNetworkTest` | Consensus with injectable message drop (retries / view change). |
-| `mvn test -Dtest=ClientIntegrationTest` | Client broadcasts append to members; leader proposes; all decide and respond. |
-| `mvn test -Dtest=MultiProcessConfigIntegrationTest` | Key-file flow: write keys, load 4 members from file, client append succeeds. |
-
----
-
-## Stage 2 — IST Coin bytecode & genesis
-
-- **`src/main/resources/contracts/ISTCoin.creation.hex`** — bytecode de **deploy** (Solidity `bytecode`).
-- **`src/main/resources/contracts/ISTCoin.runtime.hex`** — bytecode **deployed** (`deployedBytecode`), usado na EVM após deploy.
-- **`src/main/resources/blockchain/genesis.json`** — a transação inicial `to: null` usa o **creation** hex do IST (deploy real, não stub). Opcionalmente podes acrescentar **`contracts`**: lista de `{ "address", "runtimeHex", "storage": { "0x<slot>": "0x<value>", ... } }` para fixar bytecode + storage de contratos em génesis sem transação de deploy.
-
-Para **recompilar** após alterar `ISTCoin.sol` (precisa de Node.js + `npx`):
-
-```bash
-chmod +x scripts/compile-ist-bytecode.sh
-./scripts/compile-ist-bytecode.sh
-```
-
-Depois volta a gerar o campo `data` da transação de deploy no `genesis.json` (deve ser `0x` + conteúdo de `ISTCoin.creation.hex`), ou copia com:
-
-```bash
-python3 -c "import json; d=open('src/main/resources/contracts/ISTCoin.creation.hex').read().strip(); h=('0x'+d) if not d.startswith('0x') else d; g=json.load(open('src/main/resources/blockchain/genesis.json')); g['transactions'][0]['data']=h; json.dump(g, open('src/main/resources/blockchain/genesis.json','w'), indent=2)"
-```
-
-### Ordenação de transações num bloco (Stage 2 / Step 3)
-
-Antes de executar, o custo real em gas (`gas_used`) ainda não existe. O enunciado define a fee como  
-`min(gas_price × gas_limit, gas_price × gas_used)`.  
-Por isso, para **ordenar** transações no mesmo bloco usamos o **limite superior** que o utilizador aceita pagar:
-
-- **Chave principal:** `gas_price × gas_limit` (método `Transaction.maxFeeOffer()`) — **maior primeiro**.
-- **Desempate:** `nonce` crescente (`BlockchainLedger.appendBlock`).
-
-Isto aproxima “maior taxa / maior prioridade” de forma consistente com a fórmula de fee do PDF.
-
-**Consenso (Step 4):** o líder recolhe até **64** pedidos verificados da mempool (`BlockchainMember`), ordena-os com `TransactionBatchOrder` (maior `maxFeeOffer` primeiro entre *cabeças* de remetentes; por remetente mantém-se `nonce` crescente) e propõe **um bloco** com vários itens `TxBatchPayload`. Assim, um bloco pode conter várias transações e respeita o enunciado dentro do bloco.
-
-### Gas usado na execução (fee `min(gas_price × gas_limit, gas_price × gas_used)`)
-
-- **Transferência nativa** (`to` sem código de contrato): `gas_used` = **21 000** (custo intrínseco; não passa pela EVM de contrato).
-- **Deploy e chamadas a contrato:** o gas é **medido** com Besu (`EVMExecutor` + `GasCaptureTracer` em `BesuEvmHelper`); o valor usado para a fee é **limitado** pelo `gas_limit` da transação.
-- Chamadas a endereços sem contrato registado cobram um intrínseco de falha (ver `TransactionExecutor`).
-
-### Persistência de blocos (`BlockJsonStore`)
-
-- Cada `LedgerBlock` gravado em JSON inclui o estado de contas (`balance` / `nonce`) e **`contractRuntimeHex`**: bytecode de **runtime** dos contratos deployados nesse bloco (para restaurar o `ContractRuntimeRegistry`).
-- Para cumprir o requisito do enunciado de “world state” por bloco, também persistimos **`contractStorageHex`** para contratos suportados (atualmente **IST Coin**): slots de storage relevantes (balances e allowances) em hex 32 bytes.
-- Restauro mínimo após `load`:
-  - `ContractRuntimeRegistry.applyRuntimeHexSnapshot(block.getContractRuntimeHex())`
-  - `BesuEvmHelper.applyCodesFromRegistry(registry)`
-  - `BesuEvmHelper.applyContractStorageHexSnapshot(contractAddr, block.getContractStorageHex().get(contractAddr))`
+| `mvn test -Dtest=HotStuffIntegrationTest` | Consensus: 4 replicas decide; view change after leader timeout. |
+| `mvn test -Dtest=ByzantineTest` | One replica sends bad votes; others still decide. |
+| `mvn test -Dtest=IntrusiveNetworkTest` | Injectable message loss / retries / view change. |
+| `mvn test -Dtest=ClientIntegrationTest` | Client broadcast → leader proposes → decide → client response. |
+| `mvn test -Dtest=MultiProcessConfigIntegrationTest` | Key file → four members → client append. |

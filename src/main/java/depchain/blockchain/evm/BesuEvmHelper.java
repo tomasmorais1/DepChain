@@ -19,8 +19,7 @@ import org.hyperledger.besu.evm.fluent.SimpleWorld;
 import org.hyperledger.besu.evm.frame.MessageFrame;
 
 /**
- * Hyperledger Besu EVM wrapper for Step 3 contract deploy and call.
- * DepCoin balances are mapped 1:1 to {@link Wei} smallest units for execution.
+ * Besu EVM wrapper for deploy/call. DepCoin balances map 1:1 to {@link Wei} for execution.
  */
 public final class BesuEvmHelper {
     private final SimpleWorld world = new SimpleWorld();
@@ -153,7 +152,7 @@ public final class BesuEvmHelper {
             byte[] runtime = e.getValue();
             if (runtime == null) continue;
             if (!java.util.Arrays.equals(runtime, istRuntime)) {
-                continue; // only IST supported for storage snapshotting
+                continue;
             }
             Map<String, String> slots = snapshotIstStorageSlots(contractHex, addrs);
             if (!slots.isEmpty()) {

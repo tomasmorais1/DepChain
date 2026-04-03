@@ -35,19 +35,17 @@ public final class BlockBatcher {
             ClientProtocol.Request req = ordered.get(i);
             Transaction tx = TransactionCommandCodec.decode(req.getString());
             if (tx == null) {
-                // Should not happen for verified pool; treat as leftover.
                 break;
             }
             long g = tx.getGasLimit();
             if (gasAcc + g > maxGasPerBlock) {
-                break; // greedy stop
+                break;
             }
             gasAcc += g;
             selected.add(req);
         }
 
         List<ClientProtocol.Request> leftover = new ArrayList<>();
-        // Whatever we didn't include (and what we couldn't parse) goes back to mempool.
         for (int j = i; j < ordered.size(); j++) {
             leftover.add(ordered.get(j));
         }

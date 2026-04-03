@@ -76,7 +76,6 @@ public final class BlockBuilder {
             if (config.hasGasLimit()) {
                 long candidateGas = tx.getGasLimit();
                 if (wouldOverflow(totalGasLimit, candidateGas, config.getMaxBlockGas())) {
-                    // Recommended merge policy: greedy stop once the next best eligible tx no longer fits.
                     break;
                 }
             }

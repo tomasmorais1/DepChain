@@ -28,14 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.tuweni.bytes.Bytes;
 
-/**
- * Single blockchain member: runs consensus, client request listener, and blockchain service.
- *
- * Merged version:
- * - keeps the stronger DepChainFinal ETH-signed client/auth path
- * - keeps query/read handling and contract bootstrap/persistence
- * - replaces the raw pending queue with an explicit mempool + block builder
- */
+/** One replica: HotStuff consensus, UDP client listener, mempool, ledger execution and persistence. */
 public final class BlockchainMember implements AutoCloseable {
     private static final int MAX_TXS_PER_BLOCK = 64;
     private static final long MAX_GAS_PER_BLOCK = 5_000_000L;

@@ -21,11 +21,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Client library: append(string) broadcasts signed request to all members,
- * waits for f+1 identical responses before accepting (cannot trust first responder).
- * Clients sign requests with their private key so replicas can reject commands
- * forged by a byzantine leader. {@link #append(String)} uses RSA (legacy/Demo);
- * {@link #appendTransaction(Transaction)} uses secp256k1 + Keccak-256 (Ethereum-style).
+ * UDP client: broadcast to all members; accept after {@code f+1} matching replies.
+ * {@link #append(String)} RSA (legacy); {@link #appendTransaction(Transaction)} ETH signing.
  */
 public final class DepChainClient implements AutoCloseable {
     private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
@@ -37,7 +34,6 @@ public final class DepChainClient implements AutoCloseable {
     private final long timeoutMs;
     private final int maxRetries;
     private final KeyPair keyPair;
-    /** Required for {@link #appendTransaction(Transaction)}; optional for RSA-only {@link #append(String)}. */
     private final Credentials ethCredentials;
     private final AtomicLong requestIdGen = new AtomicLong(0);
     private volatile DatagramSocket socket;
@@ -54,11 +50,6 @@ public final class DepChainClient implements AutoCloseable {
         this(memberAddresses, clientPort, null, timeoutMs, maxRetries);
     }
 
-    /**
-     * Create client; if bindAddress is non-null, bind the receive socket to that
-     * address (e.g. 127.0.0.1 for multi-JVM so responses reach us).
-     * If keyPair is null, a new key pair is generated for this client.
-     */
     public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, InetSocketAddress bindAddress,
             long timeoutMs, int maxRetries) {
         this(memberAddresses, clientPort, bindAddress, null, timeoutMs, maxRetries);
@@ -69,9 +60,6 @@ public final class DepChainClient implements AutoCloseable {
         this(memberAddresses, clientPort, bindAddress, keyPair, null, timeoutMs, maxRetries);
     }
 
-    /**
-     * @param ethCredentials used to sign Stage-2 transactions ({@link #appendTransaction}); may be null for RSA-only clients.
-     */
     public DepChainClient(List<NodeAddress> memberAddresses, int clientPort, InetSocketAddress bindAddress,
             KeyPair keyPair, Credentials ethCredentials, long timeoutMs, int maxRetries) {
         this.memberAddresses = List.copyOf(memberAddresses);
@@ -105,11 +93,7 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /**
-     * Append string to the blockchain. Blocks until a member confirms or timeout.
-     * 
-     * @return the index at which the string was appended, or -1 on failure
-     */
+    /** @return decided index, or -1 */
     public int append(String string) throws InterruptedException {
         if (string == null)
             return -1;
@@ -151,7 +135,6 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /** Submit a full Stage 2 transaction: Keccak-256 + ECDSA; replicas recover {@code from}. */
     public int appendTransaction(Transaction tx) throws InterruptedException {
         if (tx == null) {
             return -1;
@@ -202,17 +185,10 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /**
-     * Query native DepCoin balance. Client waits for f+1 identical replies (never all replicas).
-     */
     public long queryDepCoinBalance(String address) throws InterruptedException {
         return queryDepCoinBalance(address, 0);
     }
 
-    /**
-     * Query native DepCoin balance, requiring replies from replicas whose headHeight is at least {@code minHeadHeight}.
-     * Useful for read-after-write: first do appendTransaction(), then query with minHeadHeight = decided index.
-     */
     public long queryDepCoinBalance(String address, int minHeadHeight) throws InterruptedException {
         long requestId = requestIdGen.incrementAndGet();
         byte[] payload = ClientProtocol.encodeQueryRequest(requestId, ClientProtocol.QUERY_DEP_BALANCE, address);
@@ -244,17 +220,10 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /**
-     * Query IST Coin balance via balanceOf(contract, address). Returns uint256 truncated to long if it fits.
-     * The raw EVM returnData is compared across replicas via f+1 identical replies.
-     */
     public java.math.BigInteger queryIstBalanceOf(String contractAddress, String address) throws InterruptedException {
         return queryIstBalanceOf(contractAddress, address, 0);
     }
 
-    /**
-     * Query IST Coin balance requiring replies from replicas whose headHeight is at least {@code minHeadHeight}.
-     */
     public java.math.BigInteger queryIstBalanceOf(String contractAddress, String address, int minHeadHeight)
             throws InterruptedException {
         String payloadStr = contractAddress + "|" + address;
@@ -290,7 +259,6 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /** Accumulates responses until requiredResponses (f+1) identical (same success, index) are received. */
     private static final class ResponseAccumulator {
         final CompletableFuture<ClientProtocol.Response> future = new CompletableFuture<>();
         final int required;
@@ -315,7 +283,6 @@ public final class DepChainClient implements AutoCloseable {
         }
     }
 
-    /** Accumulates query responses until requiredResponses (f+1) identical are received. */
     private static final class QueryAccumulator {
         final CompletableFuture<ClientProtocol.QueryResponse> future = new CompletableFuture<>();
         final int required;
